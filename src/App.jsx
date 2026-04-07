@@ -5,7 +5,7 @@ import './App.css';
 // ============================================
 // 홈페이지 컴포넌트 (로그인 전)
 // ============================================
-function HomePage() {
+function HomePage({ onLoginClick, searchText, setSearchText }) {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   return (
@@ -55,8 +55,10 @@ function HomePage() {
               type="text" 
               placeholder="카드 이름으로 검색..." 
               className="search-input"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
             />
-            <button className="search-btn">검색</button>
+            <button className="search-btn" onClick={() => setShowLoginModal(true)}>검색</button>
           </div>
 
           {/* 버튼들 */}
@@ -78,17 +80,18 @@ function HomePage() {
 // ============================================
 // 카드 목록 페이지 컴포넌트
 // ============================================
-function CardListPage({ user, onSelectCard, onLogout }) {
+function CardListPage({ user, onSelectCard, onLogout, searchText, setSearchText }) {
   const [cards, setCards] = useState([]);
   const [filteredCards, setFilteredCards] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [selectedRarity, setSelectedRarity] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [currentPage, setCurrentPage] = useState(1);
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
   
-  const CARDS_PER_PAGE = 9;
+  const CARDS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchCards();
@@ -102,13 +105,85 @@ function CardListPage({ user, onSelectCard, onLogout }) {
   const fetchCards = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let allData = [];
+      const PAGE_SIZE = 250; // 서버의 최대 제한치에 맞춰 안전하게 설정
+
+      // 1. 첫 번째 요청에서 데이터와 함께 전체 개수(count)를 가져옵니다.
+      const { data, error, count } = await supabase
         .from('pokemon_cards')
-        .select('*')
-        .limit(300);
+        .select('*', { count: 'exact' })
+        .range(0, PAGE_SIZE - 1);
 
       if (error) throw error;
-      setCards(data || []);
+      if (data) allData = [...data];
+
+      const totalCount = count || 0;
+      let from = PAGE_SIZE;
+
+      // 2. 현재 가져온 데이터 양이 전체 개수보다 적다면 계속해서 가져옵니다.
+      while (allData.length < totalCount) {
+        const { data: nextBatch, error: nextError } = await supabase
+          .from('pokemon_cards')
+          .select('*')
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (nextError) throw nextError;
+        if (nextBatch && nextBatch.length > 0) {
+          allData = [...allData, ...nextBatch];
+          from += PAGE_SIZE;
+        } else {
+          break;
+        }
+      }
+
+      // rarity가 없으면 set_name에서 파싱하기
+      allData = allData.map(card => {
+        if (!card.rarity && card.set_name) {
+          // set_name에서 "Trainer Gallery", "Radiant Rare" 등의 rarity 패턴 추출
+          const rarityPatterns = [
+            'Trainer Gallery Rare Holo',
+            'Trainer Gallery Rare',
+            'Radiant Rare',
+            'Crown Rare',
+            'Gold Rare',
+            'Rare Holo V',
+            'Rare Holo VMAX',
+            'Rare Holo VSTAR',
+            'Classic Collection'
+          ];
+          
+          let foundPattern = null;
+          for (const pattern of rarityPatterns) {
+            if (card.set_name.includes(pattern)) {
+              foundPattern = pattern;
+              break;
+            }
+          }
+          
+          // 패턴을 찾은 경우
+          if (foundPattern) {
+            return { ...card, rarity: foundPattern };
+          }
+          
+          // 패턴을 못 찾은 경우, set_name의 마지막 부분을 rarity로 사용
+          // 예: "Astral Radiance" → rarity: "Astral Radiance"
+          const setNameParts = card.set_name.split(':');
+          const rarity = setNameParts[setNameParts.length - 1].trim();
+          return { ...card, rarity: rarity };
+        }
+        return card;
+      });
+
+      setCards(allData);
+      
+      // 디버그: 레어도 정보 출력
+      const rarityStats = {};
+      allData.forEach(card => {
+        const rarity = card.rarity || 'NO_RARITY';
+        rarityStats[rarity] = (rarityStats[rarity] || 0) + 1;
+      });
+      console.log('📊 레어도별 카드 개수:', rarityStats);
+      console.log('❌ NO_RARITY인 카드들:', allData.filter(c => !c.rarity).slice(0, 5).map(c => c.name));
     } catch (error) {
       console.error('❌ 카드 조회 실패:', error);
     } finally {
@@ -120,8 +195,10 @@ function CardListPage({ user, onSelectCard, onLogout }) {
     let filtered = [...cards];
 
     if (searchText) {
+      const term = searchText.toLowerCase().trim();
       filtered = filtered.filter(card =>
-        card.name.toLowerCase().includes(searchText.toLowerCase())
+        // 검색어가 이름에 포함된 경우만 필터링 (완전 일치가 아닌 포함 여부)
+        card.name && card.name.toLowerCase().includes(term)
       );
     }
 
@@ -138,7 +215,10 @@ function CardListPage({ user, onSelectCard, onLogout }) {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return a.name.localeCompare(b.name);
+          // name이 없는 경우 빈 문자열로 비교하여 오류 방지
+          const nameA = a.name || '';
+          const nameB = b.name || '';
+          return nameA.localeCompare(nameB);
         case 'rarity':
           const rarityOrder = { 'Common': 1, 'Uncommon': 2, 'Rare': 3, 'Holo Rare': 4 };
           return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
@@ -167,7 +247,9 @@ function CardListPage({ user, onSelectCard, onLogout }) {
   const paginatedCards = filteredCards.slice(startIndex, endIndex);
 
   const cardTypes = ['Fire', 'Water', 'Grass', 'Lightning', 'Psychic', 'Fighting', 'Darkness', 'Metal', 'Fairy', 'Dragon', 'Colorless'];
-  const rarities = ['Common', 'Uncommon', 'Rare', 'Holo Rare', 'Rare Holo GX', 'Rare Holo EX'];
+  
+  // 동적으로 모든 고유한 레어도 추출
+  const rarities = [...new Set(cards.map(card => card.rarity).filter(Boolean))].sort();
 
   return (
     <div className="card-list-container">
@@ -179,39 +261,66 @@ function CardListPage({ user, onSelectCard, onLogout }) {
         </div>
       </div>
 
+      <div className="search">
+        <input
+          type="text"
+          placeholder="카드 이름으로 검색..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+      </div>
+
       <div className="filters">
-        <div className="search">
-          <input
-            type="text"
-            placeholder="카드 이름으로 검색..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-        </div>
+        <button className="accordion-btn" onClick={() => setShowFilters(!showFilters)}>
+          필터 {showFilters ? '▲' : '▼'}
+        </button>
 
-        <div className="filter-group">
-          <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
-            <option value="">모든 타입</option>
-            {cardTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
+        {showFilters && (
+          <div className="filter-group">
+            <div className="filter-item">
+              <label>타입</label>
+              <div className="filter-options">
+                <button onClick={() => setSelectedType('')} className={selectedType === '' ? 'active' : ''}>모든 타입</button>
+                {cardTypes.map(type => (
+                  <button 
+                    key={type} 
+                    onClick={() => setSelectedType(type)}
+                    className={selectedType === type ? 'active' : ''}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <select value={selectedRarity} onChange={(e) => setSelectedRarity(e.target.value)}>
-            <option value="">모든 레어도</option>
-            {rarities.map(rarity => (
-              <option key={rarity} value={rarity}>{rarity}</option>
-            ))}
-          </select>
+            <div className="filter-item">
+              <label>레어도</label>
+              <div className="filter-options">
+                <button onClick={() => setSelectedRarity('')} className={selectedRarity === '' ? 'active' : ''}>모든 레어도</button>
+                {rarities.map(rarity => (
+                  <button 
+                    key={rarity} 
+                    onClick={() => setSelectedRarity(rarity)}
+                    className={selectedRarity === rarity ? 'active' : ''}
+                  >
+                    {rarity}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="name">이름순</option>
-            <option value="rarity">레어도순</option>
-            <option value="hp">HP순</option>
-          </select>
+            <div className="filter-item">
+              <label>순서</label>
+              <div className="filter-options">
+                <button onClick={() => setSortBy('name')} className={sortBy === 'name' ? 'active' : ''}>이름순</button>
+                <button onClick={() => setSortBy('rarity')} className={sortBy === 'rarity' ? 'active' : ''}>레어도순</button>
+                <button onClick={() => setSortBy('hp')} className={sortBy === 'hp' ? 'active' : ''}>HP순</button>
+              </div>
+            </div>
 
-          <button onClick={handleReset} className="reset-btn">리셋</button>
-        </div>
+            <button onClick={handleReset} className="reset-btn">리셋</button>
+          </div>
+        )}
       </div>
 
       <div className="cards-count">
@@ -226,7 +335,7 @@ function CardListPage({ user, onSelectCard, onLogout }) {
             {paginatedCards.map(card => (
               <div
                 key={card.id}
-                className="card-item"
+                className={`card-item ${card.rarity ? `card-rarity-${card.rarity.toLowerCase().replace(/\s+/g, '-')}` : ''}`}
                 onClick={() => onSelectCard(card)}
               >
                 {card.image_url ? (
@@ -242,7 +351,7 @@ function CardListPage({ user, onSelectCard, onLogout }) {
                 <div className="card-info">
                   <h3>{card.name}</h3>
                 <p>{card.set_name}</p>
-                {card.rarity && <span className="rarity">{card.rarity}</span>}
+                {card.rarity && <span className={`rarity rarity-${card.rarity.toLowerCase().replace(/\s+/g, '-')}`}>{card.rarity}</span>}
               </div>
             </div>
           ))}
@@ -260,15 +369,22 @@ function CardListPage({ user, onSelectCard, onLogout }) {
               </button>
               
               <div className="pagination-pages">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`pagination-page ${currentPage === page ? 'active' : ''}`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {(() => {
+                  const PAGES_PER_GROUP = 10;
+                  const currentGroup = Math.floor((currentPage - 1) / PAGES_PER_GROUP);
+                  const startPage = currentGroup * PAGES_PER_GROUP + 1;
+                  const endPage = Math.min(startPage + PAGES_PER_GROUP - 1, totalPages);
+                  
+                  return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`pagination-page ${currentPage === page ? 'active' : ''}`}
+                    >
+                      {page}
+                    </button>
+                  ));
+                })()}
               </div>
 
               <button 
@@ -393,6 +509,11 @@ function CardDetailPage({ card, onBack }) {
     return <div className="detail-loading">로딩 중...</div>;
   }
 
+  // 디버그: 카드 객체 출력
+  console.log('📋 상세정보 카드 객체:', card);
+  console.log('🔍 rarity:', card.rarity);
+  console.log('📊 카드의 모든 필드:', Object.keys(card));
+
   return (
     <div className="detail-container">
       <button onClick={onBack} className="back-btn">← 돌아가기</button>
@@ -452,6 +573,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('list');
   const [selectedCard, setSelectedCard] = useState(null);
+  const [searchText, setSearchText] = useState(''); // 검색 상태를 최상단으로 이동
 
   useEffect(() => {
     checkAuth();
@@ -481,7 +603,12 @@ function App() {
   }
 
   if (!user) {
-    return <HomePage />;
+    return (
+      <HomePage 
+        searchText={searchText} 
+        setSearchText={setSearchText} 
+      />
+    );
   }
 
   if (currentPage === 'detail' && selectedCard) {
@@ -499,6 +626,8 @@ function App() {
   return (
     <CardListPage
       user={user}
+      searchText={searchText}
+      setSearchText={setSearchText}
       onSelectCard={(card) => {
         setSelectedCard(card);
         setCurrentPage('detail');

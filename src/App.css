@@ -477,33 +477,39 @@ body {
 
 /* 카드 목록 페이지 */
 .card-list-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem;
+  background: #000;
 }
 
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 2rem;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid #333;
   padding-bottom: 1rem;
+  position: relative;
 }
 
 .header h1 {
   margin: 0;
-  color: #333;
+  color: #fff;
+  font-size: 1.2rem;
 }
 
 .user-info {
+  position: absolute;
+  right: 0;
   display: flex;
   gap: 1rem;
   align-items: center;
 }
 
 .user-info span {
-  color: #666;
+  color: #ccc;
+  font-size: 0.8rem;
 }
 
 .logout-btn {
@@ -532,50 +538,116 @@ body {
 }
 
 .search input {
-  width: 100%;
+  width: 50%;
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 1rem;
 }
 
-.filter-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
+.filters {
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  width: 50%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.filter-group select,
-.filter-group button {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 0.9rem;
-  background: white;
-  cursor: pointer;
-}
-
-.reset-btn {
+.accordion-btn {
+  width: 100%;
+  padding: 1rem;
   background: #667eea;
   color: white;
   border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background 0.2s;
+  text-align: left;
+}
+
+.accordion-btn:hover {
+  background: #764ba2;
+}
+
+.filter-group {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-item label {
+  font-weight: bold;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-options button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.filter-options button:hover {
+  background: #e0e0e0;
+}
+
+.filter-options button.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.reset-btn {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  background: #ff5252;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
   transition: background 0.2s;
 }
 
 .reset-btn:hover {
-  background: #764ba2;
+  background: #ff1744;
 }
 
 .cards-count {
-  color: #666;
+  color: #ccc;
   margin-bottom: 1rem;
   font-size: 0.9rem;
 }
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(5, 0.1fr);
+  gap: 0.1rem 0.1rem;
+  row-gap: 1rem;
+  justify-items: center;
+  justify-content: center;
 }
 
 .card-item {
@@ -585,6 +657,31 @@ body {
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  max-width: 240px;
+  margin: 0 auto;
+  border: 2px solid transparent;
+}
+
+.card-rarity-common {
+  border-color: #555;
+}
+
+.card-rarity-uncommon {
+  border-color: #228B22;
+}
+
+.card-rarity-rare {
+  border-color: #FF8C00;
+}
+
+.card-rarity-holo-rare {
+  border-color: #D946EF;
+}
+
+.card-rarity-classic-collection {
+  border-color: #888;
 }
 
 .card-item:hover {
@@ -594,9 +691,9 @@ body {
 
 .card-item img {
   width: 100%;
-  height: 250px;
-  object-fit: cover;
+  height: auto;
   display: block;
+  background: #f9f9f9;
 }
 
 .no-image {
@@ -612,35 +709,55 @@ body {
 }
 
 .card-info {
-  padding: 1rem;
+  padding: 0.25rem;
 }
 
 .card-info h3 {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
+  margin: 0 0 0.1rem;
+  font-size: 0.7rem;
   color: #333;
 }
 
 .card-info p {
   margin: 0;
   color: #999;
-  font-size: 0.85rem;
+  font-size: 0.6rem;
 }
 
 .rarity {
   display: inline-block;
-  background: #ffc107;
-  color: #333;
-  padding: 0.25rem 0.5rem;
-  border-radius: 3px;
   font-size: 0.75rem;
-  margin-top: 0.5rem;
+  margin-top: 0.2rem;
+  font-weight: bold;
+}
+
+.rarity-common {
+  color: #555;
+}
+
+.rarity-uncommon {
+  color: #228B22;
+}
+
+.rarity-rare {
+  color: #FF8C00;
+}
+
+.rarity-holo-rare {
+  color: #D946EF;
+}
+
+.rarity-promo,
+.rarity-rare-holo-gx,
+.rarity-rare-holo-ex,
+.rarity-classic-collection {
+  color: #888;
 }
 
 .loading {
   text-align: center;
   padding: 2rem;
-  color: #666;
+  color: #ccc;
 }
 
 /* 페이지네이션 */
@@ -651,7 +768,7 @@ body {
   gap: 1rem;
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f8f9fa;
+  background: #fff;
   border-radius: 8px;
 }
 
