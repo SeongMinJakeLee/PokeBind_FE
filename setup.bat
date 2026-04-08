@@ -1,5 +1,11 @@
 @echo off
 cd /d C:\Users\jake3\jake\pokemon-tcg-dex\frontend
+echo Creating directories...
+if not exist src\components (
+    md src\components
+    echo src\components directory created
+)
+echo.
 echo Deleting App_new.css...
 if exist src\App_new.css (
     del src\App_new.css

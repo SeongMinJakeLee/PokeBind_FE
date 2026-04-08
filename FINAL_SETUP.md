@@ -19,6 +19,11 @@ Windows 시작 → "cmd" 검색 → Command Prompt 열기
 cd C:\Users\jake3\jake\pokemon-tcg-dex\frontend
 ```
 
+### 2-1️⃣ components 폴더 생성 (신규)
+```cmd
+mkdir src\components
+```
+
 ### 3️⃣ App_new.css 삭제 (필요시)
 ```cmd
 del src\App_new.css

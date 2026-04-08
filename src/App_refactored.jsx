@@ -1,28 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 import './App.css';
-import LoginModal from './LoginModal';
-import HomePage from './HomePage';
-import CardListPage from './CardListPage';
-import CardDetailPage from './CardDetailPage';
-
-const checkAuth = async (setUser, setLoading) => {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    setUser(session?.user || null);
-    setLoading(false);
-  } catch (error) {
-    console.error('❌ 인증 확인 실패:', error);
-    setLoading(false);
-  }
-};
-
-const subscribeToAuthChanges = (setUser) => {
-  const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    setUser(session?.user || null);
-  });
-  return data.subscription;
-};
+import LoginModal from './components/LoginModal';
+import HomePage from './components/HomePage';
+import CardListPage from './components/CardListPage';
+import CardDetailPage from './components/CardDetailPage';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -32,9 +14,27 @@ function App() {
   const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
-    checkAuth(setUser, setLoading);
-    subscribeToAuthChanges(setUser);
+    checkAuth();
+    subscribeToAuthChanges();
   }, []);
+
+  const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      setLoading(false);
+    } catch (error) {
+      console.error('❌ 인증 확인 실패:', error);
+      setLoading(false);
+    }
+  };
+
+  const subscribeToAuthChanges = () => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+    return data.subscription;
+  };
 
   if (loading) {
     return <div className="container loading">로딩 중...</div>;

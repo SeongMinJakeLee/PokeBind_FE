@@ -35,6 +35,47 @@ body {
   border-right: 1px solid #3a3a3a;
   overflow-y: auto;
   white-space: nowrap;
+  position: fixed;
+  left: -250px;
+  top: 0;
+  height: 100vh;
+  transition: left 0.3s ease;
+  z-index: 999;
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.sidebar-toggle {
+  background: none;
+  color: #ccc;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  position: relative;
+  z-index: 100;
+}
+
+.sidebar-toggle:hover {
+  color: #667eea;
+}
+
+.sidebar-close {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  margin-bottom: 1rem;
+}
+
+.sidebar-close:hover {
+  color: #667eea;
 }
 
 .sidebar-logo {
@@ -263,7 +304,7 @@ body {
 }
 
 .hero-logo {
-  font-size: 5.5rem;
+  font-size: 3.85rem;
   font-weight: bold;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
