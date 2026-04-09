@@ -10,6 +10,7 @@ function CardListPage({ user, onSelectCard, onLogout, searchText, setSearchText 
   const [sortBy, setSortBy] = useState('name');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const CARDS_PER_PAGE = 10;
 
@@ -162,7 +163,24 @@ function CardListPage({ user, onSelectCard, onLogout, searchText, setSearchText 
 
   return (
     <div className="card-list-container">
+      {/* 좌측 사이드바 */}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>✕</button>
+        <nav className="sidebar-menu">
+          <div className="menu-item">📊 내 컬렉션</div>
+          <div className="menu-item">⭐ 찜 목록</div>
+          <div className="menu-item">🔍 검색</div>
+          <div className="menu-item">📚 도움말</div>
+          <div className="menu-divider"></div>
+          <div className="menu-item">👤 프로필</div>
+          <div className="menu-item">⚙️ 설정</div>
+        </nav>
+      </aside>
+
+      {/* 메인 콘텐츠 */}
+      <div className="main-content">
       <div className="header">
+        <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
         <h1>🎴 포켓몬 TCG 도감</h1>
         <div className="user-info">
           <span>{user.email}</span>
@@ -307,6 +325,7 @@ function CardListPage({ user, onSelectCard, onLogout, searchText, setSearchText 
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

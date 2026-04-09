@@ -7,7 +7,6 @@ function HomePage({ searchText, setSearchText }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -40,25 +39,10 @@ function HomePage({ searchText, setSearchText }) {
 
   return (
     <div className="homepage">
-      {/* 좌측 사이드바 */}
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>✕</button>
-        <nav className="sidebar-menu">
-          <div className="menu-item">📊 내 컬렉션</div>
-          <div className="menu-item">⭐ 찜 목록</div>
-          <div className="menu-item">🔍 검색</div>
-          <div className="menu-item">📚 도움말</div>
-          <div className="menu-divider"></div>
-          <div className="menu-item">👤 프로필</div>
-          <div className="menu-item">⚙️ 설정</div>
-        </nav>
-      </aside>
-
       {/* 메인 콘텐츠 */}
       <div className="main-content">
         {/* 상단 네비게이션 */}
         <header className="top-nav">
-          <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
           <div className="nav-links">
             <a href="#" className="nav-link">Pokemon TCG</a>
             <a href="#" className="nav-link">뉴스</a>

@@ -110,15 +110,18 @@ function CardDetailPage({ card, onBack }) {
       <button onClick={onBack} className="back-btn">← 돌아가기</button>
 
       <div className="detail-content">
-        <div className="detail-image">
-          {card.image_url ? (
-            <img src={card.image_url} alt={card.name} />
-          ) : (
-            <div className="no-image-large">{card.name}</div>
-          )}
+        <div className="detail-left">
+          <div className="detail-image">
+            {card.image_url ? (
+              <img src={card.image_url} alt={card.name} />
+            ) : (
+              <div className="no-image-large">{card.name}</div>
+            )}
+          </div>
         </div>
 
-        <div className="detail-info">
+        <div className="detail-right">
+          <div className="detail-info">
           <h1>{card.name}</h1>
           <p className="set-name">{card.set_name} #{card.card_number}</p>
 
@@ -141,7 +144,7 @@ function CardDetailPage({ card, onBack }) {
               className={`action-btn ${isOwned ? 'owned' : ''}`}
               onClick={toggleOwned}
             >
-              {isOwned ? '✅ 보유중' : '소유 카드로 추가'}
+              {isOwned ? '✅ 보유 중' : '보유 중인 카드'}
             </button>
             <button
               className={`action-btn ${isFavorited ? 'favorited' : ''}`}
@@ -150,6 +153,7 @@ function CardDetailPage({ card, onBack }) {
               {isFavorited ? '⭐ 찜 완료' : '⭐ 찜하기'}
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>
