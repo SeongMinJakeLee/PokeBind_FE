@@ -1,26 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 
-function CardListPage({ 
-  user, cards, cardsLoading, onSelectCard, onLogout, searchText, setSearchText, onNavigate,
-  currentPage, setCurrentPage, selectedType, setSelectedType, selectedRarity, setSelectedRarity,
-  sortBy, setSortBy, showFilters, setShowFilters
-}) {
+function MyCollectionPage({ user, onBack, cards }) {
+  const [collectionCards, setCollectionCards] = useState([]);
   const [filteredCards, setFilteredCards] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+  const [searchText, setSearchText] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedRarity, setSelectedRarity] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
   // 이전 필터 값을 추적하여 실제 필터 변경만 감지
   const prevSearchText = useRef(searchText);
   const prevSelectedType = useRef(selectedType);
   const prevSelectedRarity = useRef(selectedRarity);
   const prevSortBy = useRef(sortBy);
-  
+
   const CARDS_PER_PAGE = 10;
+
+  useEffect(() => {
+    if (user) {
+      fetchUserCollection();
+    }
+  }, [user]);
 
   // 카드 필터링 및 정렬
   useEffect(() => {
     applyFiltersAndSort();
-  }, [cards, searchText, selectedType, selectedRarity, sortBy]);
+  }, [collectionCards, searchText, selectedType, selectedRarity, sortBy]);
 
   // 필터/검색이 실제로 변경될 때만 페이지를 1로 리셋
   useEffect(() => {
@@ -40,8 +50,43 @@ function CardListPage({
     prevSortBy.current = sortBy;
   }, [searchText, selectedType, selectedRarity, sortBy]);
 
+  const fetchUserCollection = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: userCards, error: userCardsError } = await supabase
+        .from('user_cards')
+        .select('card_id')
+        .eq('user_id', user.id);
+
+      if (userCardsError) throw userCardsError;
+
+      if (!userCards || userCards.length === 0) {
+        setCollectionCards([]);
+        setLoading(false);
+        return;
+      }
+
+      const cardIds = userCards.map(item => item.card_id);
+      const { data: fetchedCards, error: cardsError } = await supabase
+        .from('pokemon_cards')
+        .select('*')
+        .in('id', cardIds);
+
+      if (cardsError) throw cardsError;
+
+      console.log('✅ 컬렉션 로드:', fetchedCards?.length || 0, '장');
+      setCollectionCards(fetchedCards || []);
+    } catch (error) {
+      console.error('❌ 컬렉션 로드 실패:', error);
+      setCollectionCards([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const applyFiltersAndSort = () => {
-    let filtered = [...cards];
+    let filtered = [...collectionCards];
 
     if (searchText) {
       const term = searchText.toLowerCase().trim();
@@ -79,83 +124,17 @@ function CardListPage({
     setFilteredCards(filtered);
   };
 
-  const fetchCards = async () => {
+  const handleRemoveFromCollection = async (cardId) => {
     try {
-      setLoading(true);
-      let allData = [];
-      const PAGE_SIZE = 250; // 서버의 최대 제한치에 맞춰 안전하게 설정
+      await supabase
+        .from('user_cards')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('card_id', cardId);
 
-      // 1. 첫 번째 요청에서 데이터와 함께 전체 개수(count)를 가져옵니다.
-      const { data, error, count } = await supabase
-        .from('pokemon_cards')
-        .select('*', { count: 'exact' })
-        .range(0, PAGE_SIZE - 1);
-
-      if (error) throw error;
-      if (data) allData = [...data];
-
-      const totalCount = count || 0;
-      let from = PAGE_SIZE;
-
-      // 2. 현재 가져온 데이터 양이 전체 개수보다 적다면 계속해서 가져옵니다.
-      while (allData.length < totalCount) {
-        const { data: nextBatch, error: nextError } = await supabase
-          .from('pokemon_cards')
-          .select('*')
-          .range(from, from + PAGE_SIZE - 1);
-
-        if (nextError) throw nextError;
-        if (nextBatch && nextBatch.length > 0) {
-          allData = [...allData, ...nextBatch];
-          from += PAGE_SIZE;
-        } else {
-          break;
-        }
-      }
-
-      // rarity가 없으면 set_name에서 파싱하기
-      allData = allData.map(card => {
-        if (!card.rarity && card.set_name) {
-          // set_name에서 "Trainer Gallery", "Radiant Rare" 등의 rarity 패턴 추출
-          const rarityPatterns = [
-            'Trainer Gallery Rare Holo',
-            'Trainer Gallery Rare',
-            'Radiant Rare',
-            'Crown Rare',
-            'Gold Rare',
-            'Rare Holo V',
-            'Rare Holo VMAX',
-            'Rare Holo VSTAR',
-            'Classic Collection'
-          ];
-          
-          let foundPattern = null;
-          for (const pattern of rarityPatterns) {
-            if (card.set_name.includes(pattern)) {
-              foundPattern = pattern;
-              break;
-            }
-          }
-          
-          // 패턴을 찾은 경우
-          if (foundPattern) {
-            return { ...card, rarity: foundPattern };
-          }
-          
-          // 패턴을 못 �은 경우, set_name의 마지막 부분을 rarity로 사용
-          // 예: "Astral Radiance" → rarity: "Astral Radiance"
-          const setNameParts = card.set_name.split(':');
-          const rarity = setNameParts[setNameParts.length - 1].trim();
-          return { ...card, rarity: rarity };
-        }
-        return card;
-      });
-
-      setCards(allData);
+      setCollectionCards(collectionCards.filter(card => card.id !== cardId));
     } catch (error) {
-      console.error('❌ 카드 조회 실패:', error);
-    } finally {
-      setLoading(false);
+      console.error('❌ 컬렉션에서 제거 실패:', error);
     }
   };
 
@@ -167,9 +146,6 @@ function CardListPage({
     setCurrentPage(1);
   };
 
-  // CardListPage - 페이지 상태 저장을 위해 App.jsx에서 cards를 props로 받음
-  // fetchCards는 App.jsx에서 관리
-
   // 페이지네이션 계산
   const totalPages = Math.ceil(filteredCards.length / CARDS_PER_PAGE);
   const startIndex = (currentPage - 1) * CARDS_PER_PAGE;
@@ -179,7 +155,7 @@ function CardListPage({
   const cardTypes = ['Fire', 'Water', 'Grass', 'Lightning', 'Psychic', 'Fighting', 'Darkness', 'Metal', 'Fairy', 'Dragon', 'Colorless'];
   
   // 동적으로 모든 고유한 레어도 추출
-  const rarities = [...new Set(cards.map(card => card.rarity).filter(Boolean))].sort();
+  const rarities = [...new Set(collectionCards.map(card => card.rarity).filter(Boolean))].sort();
 
   return (
     <div className="card-list-container">
@@ -189,11 +165,12 @@ function CardListPage({
         <nav className="sidebar-menu">
           <div className="menu-item" onClick={() => {
             setSidebarOpen(false);
-            onNavigate?.('collection');
-          }}>📊 내 컬렉션</div>
+            onBack();
+          }}>🏠 카드 목록</div>
           <div className="menu-item">⭐ 찜 목록</div>
           <div className="menu-item" onClick={() => {
             setSidebarOpen(false);
+            onBack();
           }}>🔍 검색</div>
           <div className="menu-item">📚 도움말</div>
           <div className="menu-divider"></div>
@@ -206,10 +183,10 @@ function CardListPage({
       <div className="main-content">
       <div className="header">
         <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
-        <h1>🎴 포켓몬 TCG 도감</h1>
+        <h1>📊 내 컬렉션</h1>
         <div className="user-info">
           <span>{user.email}</span>
-          <button onClick={onLogout} className="logout-btn">로그아웃</button>
+          <button onClick={onBack} className="logout-btn">← 돌아가기</button>
         </div>
       </div>
 
@@ -279,8 +256,13 @@ function CardListPage({
         검색 결과: {filteredCards.length}개 (페이지 {currentPage}/{totalPages})
       </div>
 
-      {cardsLoading ? (
+      {loading ? (
         <div className="loading">로딩 중...</div>
+      ) : collectionCards.length === 0 ? (
+        <div className="empty-collection">
+          <p>아직 컬렉션에 카드가 없습니다.</p>
+          <p>카드 목록에서 "보유 중인 카드"를 클릭하여 추가해보세요!</p>
+        </div>
       ) : (
         <>
           <div className="cards-grid">
@@ -288,7 +270,6 @@ function CardListPage({
               <div
                 key={card.id}
                 className={`card-item ${card.rarity ? `card-rarity-${card.rarity.toLowerCase().replace(/\s+/g, '-')}` : ''}`}
-                onClick={() => onSelectCard(card)}
               >
                 {card.image_url ? (
                   <img 
@@ -305,6 +286,12 @@ function CardListPage({
                   <p>{card.set_name}</p>
                   {card.rarity && <span className={`rarity rarity-${card.rarity.toLowerCase().replace(/\s+/g, '-')}`}>{card.rarity}</span>}
                 </div>
+                <button 
+                  className="remove-btn"
+                  onClick={() => handleRemoveFromCollection(card.id)}
+                >
+                  ✕ 제거
+                </button>
               </div>
             ))}
           </div>
@@ -355,4 +342,4 @@ function CardListPage({
   );
 }
 
-export default CardListPage;
+export default MyCollectionPage;

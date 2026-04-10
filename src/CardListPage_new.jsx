@@ -8,12 +8,7 @@ function CardListPage({
 }) {
   const [filteredCards, setFilteredCards] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  // 이전 필터 값을 추적하여 실제 필터 변경만 감지
-  const prevSearchText = useRef(searchText);
-  const prevSelectedType = useRef(selectedType);
-  const prevSelectedRarity = useRef(selectedRarity);
-  const prevSortBy = useRef(sortBy);
+  const isFirstRender = useRef(true);
   
   const CARDS_PER_PAGE = 10;
 
@@ -22,22 +17,13 @@ function CardListPage({
     applyFiltersAndSort();
   }, [cards, searchText, selectedType, selectedRarity, sortBy]);
 
-  // 필터/검색이 실제로 변경될 때만 페이지를 1로 리셋
+  // 필터/검색 변경 시에만 페이지를 1로 리셋 (첫 렌더링 제외)
   useEffect(() => {
-    const filterChanged = 
-      searchText !== prevSearchText.current ||
-      selectedType !== prevSelectedType.current ||
-      selectedRarity !== prevSelectedRarity.current ||
-      sortBy !== prevSortBy.current;
-
-    if (filterChanged) {
-      setCurrentPage(1);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-
-    prevSearchText.current = searchText;
-    prevSelectedType.current = selectedType;
-    prevSelectedRarity.current = selectedRarity;
-    prevSortBy.current = sortBy;
+    setCurrentPage(1);
   }, [searchText, selectedType, selectedRarity, sortBy]);
 
   const applyFiltersAndSort = () => {
@@ -79,86 +65,6 @@ function CardListPage({
     setFilteredCards(filtered);
   };
 
-  const fetchCards = async () => {
-    try {
-      setLoading(true);
-      let allData = [];
-      const PAGE_SIZE = 250; // 서버의 최대 제한치에 맞춰 안전하게 설정
-
-      // 1. 첫 번째 요청에서 데이터와 함께 전체 개수(count)를 가져옵니다.
-      const { data, error, count } = await supabase
-        .from('pokemon_cards')
-        .select('*', { count: 'exact' })
-        .range(0, PAGE_SIZE - 1);
-
-      if (error) throw error;
-      if (data) allData = [...data];
-
-      const totalCount = count || 0;
-      let from = PAGE_SIZE;
-
-      // 2. 현재 가져온 데이터 양이 전체 개수보다 적다면 계속해서 가져옵니다.
-      while (allData.length < totalCount) {
-        const { data: nextBatch, error: nextError } = await supabase
-          .from('pokemon_cards')
-          .select('*')
-          .range(from, from + PAGE_SIZE - 1);
-
-        if (nextError) throw nextError;
-        if (nextBatch && nextBatch.length > 0) {
-          allData = [...allData, ...nextBatch];
-          from += PAGE_SIZE;
-        } else {
-          break;
-        }
-      }
-
-      // rarity가 없으면 set_name에서 파싱하기
-      allData = allData.map(card => {
-        if (!card.rarity && card.set_name) {
-          // set_name에서 "Trainer Gallery", "Radiant Rare" 등의 rarity 패턴 추출
-          const rarityPatterns = [
-            'Trainer Gallery Rare Holo',
-            'Trainer Gallery Rare',
-            'Radiant Rare',
-            'Crown Rare',
-            'Gold Rare',
-            'Rare Holo V',
-            'Rare Holo VMAX',
-            'Rare Holo VSTAR',
-            'Classic Collection'
-          ];
-          
-          let foundPattern = null;
-          for (const pattern of rarityPatterns) {
-            if (card.set_name.includes(pattern)) {
-              foundPattern = pattern;
-              break;
-            }
-          }
-          
-          // 패턴을 찾은 경우
-          if (foundPattern) {
-            return { ...card, rarity: foundPattern };
-          }
-          
-          // 패턴을 못 �은 경우, set_name의 마지막 부분을 rarity로 사용
-          // 예: "Astral Radiance" → rarity: "Astral Radiance"
-          const setNameParts = card.set_name.split(':');
-          const rarity = setNameParts[setNameParts.length - 1].trim();
-          return { ...card, rarity: rarity };
-        }
-        return card;
-      });
-
-      setCards(allData);
-    } catch (error) {
-      console.error('❌ 카드 조회 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleReset = () => {
     setSearchText('');
     setSelectedType('');
@@ -166,9 +72,6 @@ function CardListPage({
     setSortBy('name');
     setCurrentPage(1);
   };
-
-  // CardListPage - 페이지 상태 저장을 위해 App.jsx에서 cards를 props로 받음
-  // fetchCards는 App.jsx에서 관리
 
   // 페이지네이션 계산
   const totalPages = Math.ceil(filteredCards.length / CARDS_PER_PAGE);
@@ -192,9 +95,7 @@ function CardListPage({
             onNavigate?.('collection');
           }}>📊 내 컬렉션</div>
           <div className="menu-item">⭐ 찜 목록</div>
-          <div className="menu-item" onClick={() => {
-            setSidebarOpen(false);
-          }}>🔍 검색</div>
+          <div className="menu-item">🔍 검색</div>
           <div className="menu-item">📚 도움말</div>
           <div className="menu-divider"></div>
           <div className="menu-item">👤 프로필</div>

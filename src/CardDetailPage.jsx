@@ -62,13 +62,14 @@ function CardDetailPage({ card, onBack }) {
           .eq('card_id', card.id);
         setIsOwned(false);
       } else {
-        await supabase
+        const { error } = await supabase
           .from('user_cards')
           .insert({
             user_id: user.id,
             card_id: card.id,
             quantity: 1
           });
+        if (error) throw error;
         setIsOwned(true);
       }
     } catch (error) {

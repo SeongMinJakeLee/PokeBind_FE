@@ -1065,3 +1065,157 @@ body {
     margin: 1rem;
   }
 }
+
+/* ===== 컬렉션 페이지 ===== */
+.collection-container {
+  background: #1a1a1a;
+  color: #fff;
+  min-height: 100vh;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.collection-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 1.5rem;
+}
+
+.collection-header h1 {
+  flex: 1;
+  font-size: 2.5rem;
+  margin: 0;
+}
+
+.collection-count {
+  font-size: 1.5rem;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.collection-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.sort-select {
+  padding: 0.75rem 1rem;
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.sort-select:hover {
+  border-color: #667eea;
+}
+
+.empty-collection {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #999;
+}
+
+.empty-collection p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.collection-card {
+  background: #2a2a2a;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.collection-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2);
+}
+
+.card-image-wrapper {
+  width: 100%;
+  height: 280px;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #444;
+  color: #999;
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+.collection-card-info {
+  padding: 1rem;
+}
+
+.collection-card-info h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-set {
+  font-size: 0.85rem;
+  color: #999;
+  margin: 0.25rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-number {
+  font-size: 0.85rem;
+  color: #667eea;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.remove-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: #444;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.remove-btn:hover {
+  background: #d9534f;
+}
