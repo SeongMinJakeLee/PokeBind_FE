@@ -30,9 +30,15 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState([]);
   const [cardsLoading, setCardsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState('list');
+  const [currentPage, setCurrentPage] = useState('home');
   const [selectedCard, setSelectedCard] = useState(null);
-  const [searchText, setSearchText] = useState('');
+  
+  // HomePage 상태 (페이지 이동 후에도 유지)
+  const [homeSearchText, setHomeSearchText] = useState('');
+  const [homeSelectedType, setHomeSelectedType] = useState('');
+  const [homeSelectedRarity, setHomeSelectedRarity] = useState('');
+  const [homeSortBy, setHomeSortBy] = useState('name');
+  const [homeCurrentPage, setHomeCurrentPage] = useState(1);
   
   // CardListPage 상태 (페이지 이동 후에도 유지)
   const [listCurrentPage, setListCurrentPage] = useState(1);
@@ -123,66 +129,66 @@ function App() {
     return <div className="container loading">로딩 중...</div>;
   }
 
-  if (!user) {
-    return (
-      <HomePage 
-        searchText={searchText} 
-        setSearchText={setSearchText} 
-      />
-    );
-  }
-
+  // 상세 페이지 (로그인 필요 없음)
   if (currentPage === 'detail' && selectedCard) {
     return (
       <CardDetailPage
         card={selectedCard}
+        user={user}
         onBack={() => {
-          setCurrentPage('list');
+          setCurrentPage('home');
           setSelectedCard(null);
         }}
       />
     );
   }
 
+  // 내 컬렉션 (로그인 필요)
   if (currentPage === 'collection') {
+    if (!user) {
+      setCurrentPage('home');
+      return <div></div>;
+    }
     return (
       <MyCollectionPage
         user={user}
         onBack={() => {
-          setCurrentPage('list');
+          setCurrentPage('home');
         }}
       />
     );
   }
 
+  // 홈페이지 (메인 화면 - 항상 표시)
   return (
-    <CardListPage
+    <HomePage 
       user={user}
       cards={cards}
       cardsLoading={cardsLoading}
-      searchText={searchText}
-      setSearchText={setSearchText}
-      currentPage={listCurrentPage}
-      setCurrentPage={setListCurrentPage}
-      selectedType={listSelectedType}
-      setSelectedType={setListSelectedType}
-      selectedRarity={listSelectedRarity}
-      setSelectedRarity={setListSelectedRarity}
-      sortBy={listSortBy}
-      setSortBy={setListSortBy}
-      showFilters={listShowFilters}
-      setShowFilters={setListShowFilters}
+      searchText={homeSearchText}
+      setSearchText={setHomeSearchText}
+      selectedType={homeSelectedType}
+      setSelectedType={setHomeSelectedType}
+      selectedRarity={homeSelectedRarity}
+      setSelectedRarity={setHomeSelectedRarity}
+      sortBy={homeSortBy}
+      setSortBy={setHomeSortBy}
+      currentPage={homeCurrentPage}
+      setCurrentPage={setHomeCurrentPage}
+      onNavigate={(page) => {
+        if (!user && (page === 'collection' || page === 'favorites')) {
+          // 로그인 필요한 페이지 - 로그인 팝업은 HomePage에서 처리
+          return;
+        }
+        setCurrentPage(page);
+      }}
       onSelectCard={(card) => {
         setSelectedCard(card);
         setCurrentPage('detail');
       }}
-      onNavigate={(page) => {
-        setCurrentPage(page);
-      }}
       onLogout={() => {
         supabase.auth.signOut();
         setUser(null);
-        setCurrentPage('list');
       }}
     />
   );

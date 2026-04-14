@@ -1,46 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 
-function CardDetailPage({ card, onBack }) {
-  const [user, setUser] = useState(null);
+function CardDetailPage({ card, user: propUser, onBack }) {
+  const [user, setUser] = useState(propUser || null);
   const [isOwned, setIsOwned] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getUser();
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      checkOwnershipAndFavorite();
+    if (propUser) {
+      setUser(propUser);
+      checkOwnershipAndFavorite(propUser);
+    } else {
+      getUser();
     }
-  }, [user, card]);
+  }, [propUser, card]);
 
   const getUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     setUser(session?.user);
+    if (!session?.user) {
+      setLoading(false);
+    }
   };
 
-  const checkOwnershipAndFavorite = async () => {
-    if (!user) return;
+  const checkOwnershipAndFavorite = async (currentUser) => {
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data: ownedData } = await supabase
         .from('user_cards')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
         .eq('card_id', card.id)
-        .single();
+        .maybeSingle();
 
       setIsOwned(!!ownedData);
 
       const { data: favoriteData } = await supabase
         .from('user_favorites')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
         .eq('card_id', card.id)
-        .single();
+        .maybeSingle();
 
       setIsFavorited(!!favoriteData);
     } catch (error) {
@@ -51,7 +56,10 @@ function CardDetailPage({ card, onBack }) {
   };
 
   const toggleOwned = async () => {
-    if (!user) return;
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
 
     try {
       if (isOwned) {
@@ -74,11 +82,15 @@ function CardDetailPage({ card, onBack }) {
       }
     } catch (error) {
       console.error('❌ 보유 카드 업데이트 실패:', error);
+      alert('카드 업데이트에 실패했습니다.');
     }
   };
 
   const toggleFavorite = async () => {
-    if (!user) return;
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
 
     try {
       if (isFavorited) {
@@ -99,6 +111,7 @@ function CardDetailPage({ card, onBack }) {
       }
     } catch (error) {
       console.error('❌ 찜 업데이트 실패:', error);
+      alert('찜 업데이트에 실패했습니다.');
     }
   };
 

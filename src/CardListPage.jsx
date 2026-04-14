@@ -313,11 +313,11 @@ function CardListPage({
           {totalPages > 1 && (
             <div className="pagination">
               <button 
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
                 className="pagination-btn"
               >
-                ← 이전
+                ⏮ 처음
               </button>
               
               <div className="pagination-pages">
@@ -326,25 +326,48 @@ function CardListPage({
                   const currentGroup = Math.floor((currentPage - 1) / PAGES_PER_GROUP);
                   const startPage = currentGroup * PAGES_PER_GROUP + 1;
                   const endPage = Math.min(startPage + PAGES_PER_GROUP - 1, totalPages);
+                  const maxGroup = Math.ceil(totalPages / PAGES_PER_GROUP) - 1;
                   
-                  return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`pagination-page ${currentPage === page ? 'active' : ''}`}
-                    >
-                      {page}
-                    </button>
-                  ));
+                  return (
+                    <>
+                      {currentGroup > 0 && (
+                        <button 
+                          className="pagination-btn"
+                          onClick={() => setCurrentPage(Math.max(startPage - PAGES_PER_GROUP, 1))}
+                        >
+                          ◀ 이전 10개
+                        </button>
+                      )}
+                      
+                      {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`pagination-page ${currentPage === page ? 'active' : ''}`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      
+                      {currentGroup < maxGroup && (
+                        <button 
+                          className="pagination-btn"
+                          onClick={() => setCurrentPage(startPage + PAGES_PER_GROUP)}
+                        >
+                          다음 10개 ▶
+                        </button>
+                      )}
+                    </>
+                  );
                 })()}
               </div>
 
               <button 
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
                 className="pagination-btn"
               >
-                다음 →
+                끝 ⏭
               </button>
             </div>
           )}
