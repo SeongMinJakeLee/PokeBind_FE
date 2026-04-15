@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
+import LoginModal from './LoginModal';
 
 function CardListPage({ 
   user, cards, cardsLoading, onSelectCard, onLogout, searchText, setSearchText, onNavigate,
@@ -7,13 +8,20 @@ function CardListPage({
   sortBy, setSortBy, showFilters, setShowFilters
 }) {
   const [filteredCards, setFilteredCards] = useState([]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [localShowFilters, setLocalShowFilters] = useState(showFilters || false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [modalIsSignUp, setModalIsSignUp] = useState(false);
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState(null);
   
   // 이전 필터 값을 추적하여 실제 필터 변경만 감지
   const prevSearchText = useRef(searchText);
   const prevSelectedType = useRef(selectedType);
   const prevSelectedRarity = useRef(selectedRarity);
   const prevSortBy = useRef(sortBy);
+
+  React.useEffect(() => {
+    setLocalShowFilters(!!showFilters);
+  }, [showFilters]);
   
   const CARDS_PER_PAGE = 10;
 
@@ -182,198 +190,234 @@ function CardListPage({
   const rarities = [...new Set(cards.map(card => card.rarity).filter(Boolean))].sort();
 
   return (
-    <div className="card-list-container">
-      {/* 좌측 사이드바 */}
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>✕</button>
-        <nav className="sidebar-menu">
-          <div className="menu-item" onClick={() => {
-            setSidebarOpen(false);
-            onNavigate?.('collection');
-          }}>📊 내 컬렉션</div>
-          <div className="menu-item">⭐ 찜 목록</div>
-          <div className="menu-item" onClick={() => {
-            setSidebarOpen(false);
-          }}>🔍 검색</div>
-          <div className="menu-item">📚 도움말</div>
-          <div className="menu-divider"></div>
-          <div className="menu-item">👤 프로필</div>
-          <div className="menu-item">⚙️ 설정</div>
-        </nav>
-      </aside>
-
-      {/* 메인 콘텐츠 */}
-      <div className="main-content">
-      <div className="header">
-        <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
-        <h1>🎴 포켓몬 TCG 도감</h1>
-        <div className="user-info">
-          <span>{user.email}</span>
-          <button onClick={onLogout} className="logout-btn">로그아웃</button>
+    <div className="homepage">
+      <header className="home-header">
+        <div className="header-left">
+          <h1 className="logo" onClick={() => onNavigate?.('landing')}>🎴 포켓몬 TCG 도감</h1>
         </div>
-      </div>
+        <div className="header-right">
+          {user ? (
+            <>
+              <span className="user-email">{user.email}</span>
+              <button onClick={onLogout} className="btn btn-logout">로그아웃</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-login-sm" onClick={() => { setModalIsSignUp(false); setShowLoginModal(true); }}>Log In</button>
+              <button className="btn btn-signup" onClick={() => { setModalIsSignUp(true); setShowLoginModal(true); }}>Sign Up</button>
+            </>
+          )}
+        </div>
+      </header>
 
-      <div className="search">
-        <input
-          type="text"
-          placeholder="카드 이름으로 검색..."
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-        />
-      </div>
+      <div className="main-with-sidebar">
+        {/* 좌측 사이드바 */}
+        <aside className="sidebar">
+          <button className="sidebar-btn" onClick={() => { if (!user) { setModalIsSignUp(false); setRedirectAfterLogin('collection'); setShowLoginModal(true); } else { onNavigate?.('collection'); } }}>📊 내 컬렉션</button>
+          <button className="sidebar-btn">⭐ 찜 목록</button>
+          <button className="sidebar-btn" onClick={() => onNavigate?.('list')}>🔎 검색</button>
+          <button className="sidebar-btn">📘 도움말</button>
+          <div className="sidebar-divider" />
+          <button className="sidebar-btn">👤 프로필</button>
+          <button className="sidebar-btn">⚙️ 설정</button>
+        </aside>
 
-      <div className="filters">
-        <button className="accordion-btn" onClick={() => setShowFilters(!showFilters)}>
-          필터 {showFilters ? '▲' : '▼'}
-        </button>
+        {/* 메인 콘텐츠 */}
+        <div className="home-content">
 
-        {showFilters && (
-          <div className="filter-group">
-            <div className="filter-item">
-              <label>타입</label>
-              <div className="filter-options">
-                <button onClick={() => setSelectedType('')} className={selectedType === '' ? 'active' : ''}>모든 타입</button>
+        <div className={`search-filter-wrapper has-filter-btn ${localShowFilters ? 'filters-open' : ''}`}>
+          <div className="filter-section-compact">
+            <button
+              className="accordion-btn-compact"
+              onClick={() => {
+                setLocalShowFilters(prev => !prev);
+              }}
+            >
+              <span>🔍 필터</span>
+              <span className="accordion-icon">{localShowFilters ? '▲' : '▼'}</span>
+            </button>
+          </div>
+
+          <div className="search-section">
+            <input
+              type="text"
+              placeholder="카드 이름으로 검색..."
+              value={searchText}
+              onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1); }}
+              className="search-input-large"
+            />
+          </div>
+        </div>
+
+        {localShowFilters && (
+          <div className="filters-container">
+            <div className="filter-card">
+              <h4>🔥 타입</h4>
+              <div className="filter-tags">
+                <span
+                  className={`tag ${selectedType === '' ? 'active' : ''}`}
+                  onClick={() => { setSelectedType(''); setCurrentPage(1); }}
+                >
+                  모든 타입
+                </span>
                 {cardTypes.map(type => (
-                  <button 
-                    key={type} 
-                    onClick={() => setSelectedType(type)}
-                    className={selectedType === type ? 'active' : ''}
+                  <span
+                    key={type}
+                    className={`tag ${selectedType === type ? 'active' : ''}`}
+                    onClick={() => { setSelectedType(type); setCurrentPage(1); }}
                   >
                     {type}
-                  </button>
+                  </span>
                 ))}
               </div>
             </div>
 
-            <div className="filter-item">
-              <label>레어도</label>
-              <div className="filter-options">
-                <button onClick={() => setSelectedRarity('')} className={selectedRarity === '' ? 'active' : ''}>모든 레어도</button>
+            <div className="filter-card">
+              <h4>✨ 레어도</h4>
+              <div className="filter-tags">
+                <span
+                  className={`tag ${selectedRarity === '' ? 'active' : ''}`}
+                  onClick={() => { setSelectedRarity(''); setCurrentPage(1); }}
+                >
+                  모든 레어도
+                </span>
                 {rarities.map(rarity => (
-                  <button 
-                    key={rarity} 
-                    onClick={() => setSelectedRarity(rarity)}
-                    className={selectedRarity === rarity ? 'active' : ''}
+                  <span
+                    key={rarity}
+                    className={`tag ${selectedRarity === rarity ? 'active' : ''}`}
+                    onClick={() => { setSelectedRarity(rarity); setCurrentPage(1); }}
                   >
                     {rarity}
-                  </button>
+                  </span>
                 ))}
               </div>
             </div>
-
-            <div className="filter-item">
-              <label>순서</label>
-              <div className="filter-options">
-                <button onClick={() => setSortBy('name')} className={sortBy === 'name' ? 'active' : ''}>이름순</button>
-                <button onClick={() => setSortBy('rarity')} className={sortBy === 'rarity' ? 'active' : ''}>레어도순</button>
-                <button onClick={() => setSortBy('hp')} className={sortBy === 'hp' ? 'active' : ''}>HP순</button>
-              </div>
-            </div>
-
-            <button onClick={handleReset} className="reset-btn">리셋</button>
           </div>
         )}
-      </div>
 
-      <div className="cards-count">
-        검색 결과: {filteredCards.length}개 (페이지 {currentPage}/{totalPages})
-      </div>
+        <div className="cards-count">
+          검색 결과: {filteredCards.length}개 (페이지 {currentPage}/{totalPages})
+        </div>
 
-      {cardsLoading ? (
-        <div className="loading">로딩 중...</div>
-      ) : (
-        <>
-          <div className="cards-grid">
-            {paginatedCards.map(card => (
-              <div
-                key={card.id}
-                className={`card-item ${card.rarity ? `card-rarity-${card.rarity.toLowerCase().replace(/\s+/g, '-')}` : ''}`}
-                onClick={() => onSelectCard(card)}
-              >
-                {card.image_url ? (
-                  <img 
-                    src={card.image_url} 
-                    alt={card.name}
-                    loading="lazy"
-                    style={{ width: '100%', height: '250px', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <div className="no-image">{card.name}</div>
-                )}
-                <div className="card-info">
-                  <h3>{card.name}</h3>
-                  <p>{card.set_name}</p>
-                  {card.rarity && <span className={`rarity rarity-${card.rarity.toLowerCase().replace(/\s+/g, '-')}`}>{card.rarity}</span>}
+        {cardsLoading ? (
+          <div className="loading">로딩 중...</div>
+        ) : (
+          <>
+            <div className="cards-grid">
+              {paginatedCards.map(card => (
+                <div
+                  key={card.id}
+                  className={`card-item ${card.rarity ? `card-rarity-${card.rarity.toLowerCase().replace(/\s+/g, '-')}` : ''}`}
+                  onClick={() => onSelectCard(card)}
+                >
+                  {card.image_url ? (
+                    <img 
+                      src={card.image_url} 
+                      alt={card.name}
+                      loading="lazy"
+                      style={{ width: '100%', height: '250px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div className="no-image">{card.name}</div>
+                  )}
+                  <div className="card-info">
+                    <h3>{card.name}</h3>
+                    <p>{card.set_name}</p>
+                    {card.rarity && <span className={`rarity rarity-${card.rarity.toLowerCase().replace(/\s+/g, '-')}`}>{card.rarity}</span>}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 페이지네이션 */}
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button 
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="pagination-btn"
-              >
-                ⏮ 처음
-              </button>
-              
-              <div className="pagination-pages">
-                {(() => {
-                  const PAGES_PER_GROUP = 10;
-                  const currentGroup = Math.floor((currentPage - 1) / PAGES_PER_GROUP);
-                  const startPage = currentGroup * PAGES_PER_GROUP + 1;
-                  const endPage = Math.min(startPage + PAGES_PER_GROUP - 1, totalPages);
-                  const maxGroup = Math.ceil(totalPages / PAGES_PER_GROUP) - 1;
-                  
-                  return (
-                    <>
-                      {currentGroup > 0 && (
-                        <button 
-                          className="pagination-btn"
-                          onClick={() => setCurrentPage(Math.max(startPage - PAGES_PER_GROUP, 1))}
-                        >
-                          ◀ 이전 10개
-                        </button>
-                      )}
-                      
-                      {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`pagination-page ${currentPage === page ? 'active' : ''}`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                      
-                      {currentGroup < maxGroup && (
-                        <button 
-                          className="pagination-btn"
-                          onClick={() => setCurrentPage(startPage + PAGES_PER_GROUP)}
-                        >
-                          다음 10개 ▶
-                        </button>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-
-              <button 
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                className="pagination-btn"
-              >
-                끝 ⏭
-              </button>
+              ))}
             </div>
-          )}
-        </>
-      )}
+
+            {/* 페이지네이션 */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button 
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="pagination-btn"
+                >
+                  ⏮ 처음
+                </button>
+                
+                <div className="pagination-pages">
+                  {(() => {
+                    const PAGES_PER_GROUP = 10;
+                    const currentGroup = Math.floor((currentPage - 1) / PAGES_PER_GROUP);
+                    const startPage = currentGroup * PAGES_PER_GROUP + 1;
+                    const endPage = Math.min(startPage + PAGES_PER_GROUP - 1, totalPages);
+                    const maxGroup = Math.ceil(totalPages / PAGES_PER_GROUP) - 1;
+                    
+                    return (
+                      <>
+                        {currentGroup > 0 && (
+                          <button 
+                            className="pagination-btn"
+                            onClick={() => setCurrentPage(Math.max(startPage - PAGES_PER_GROUP, 1))}
+                          >
+                            ◀ 이전 10개
+                          </button>
+                        )}
+                        
+                        {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`pagination-page ${currentPage === page ? 'active' : ''}`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                        
+                        {currentGroup < maxGroup && (
+                          <button 
+                            className="pagination-btn"
+                            onClick={() => setCurrentPage(startPage + PAGES_PER_GROUP)}
+                          >
+                            다음 10개 ▶
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                <button 
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="pagination-btn"
+                >
+                  끝 ⏭
+                </button>
+              </div>
+            )}
+          </>
+        )}
+        </div>
       </div>
+      {showLoginModal && (
+        <LoginModal onClose={() => setShowLoginModal(false)} initialIsSignUp={modalIsSignUp} onSuccess={async () => {
+          setShowLoginModal(false);
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session && redirectAfterLogin) {
+              onNavigate?.(redirectAfterLogin);
+              setRedirectAfterLogin(null);
+            } else if (session) {
+              onNavigate?.('list');
+            } else {
+              // fallback
+              window.location.reload();
+            }
+          } catch (err) {
+            window.location.reload();
+          }
+        }} />
+      )}
+
+      <footer className="footer">
+        <p>© 2026 Pokemon TCG Dex. 포켓몬은 The Pokémon Company의 상표입니다.</p>
+      </footer>
     </div>
   );
 }

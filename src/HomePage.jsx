@@ -21,6 +21,7 @@ function HomePage({
   onLogout 
 }) {
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [modalIsSignUp, setModalIsSignUp] = useState(false);
   const [filteredCards, setFilteredCards] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const CARDS_PER_PAGE = 10;
@@ -139,18 +140,37 @@ function HomePage({
               </button>
             </>
           ) : (
-            <button 
-              className="btn btn-login-sm"
-              onClick={() => setShowLoginModal(true)}
-            >
-              Log In
-            </button>
+            <>
+              <button 
+                className="btn btn-login-sm"
+                onClick={() => { setModalIsSignUp(false); setShowLoginModal(true); }}
+              >
+                Log In
+              </button>
+              <button
+                className="btn btn-signup"
+                onClick={() => { setModalIsSignUp(true); setShowLoginModal(true); }}
+              >
+                Sign Up
+              </button>
+            </>
           )}
         </div>
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="home-content">
+      <div className="main-with-sidebar">
+        <aside className="sidebar">
+          <button className="sidebar-btn" onClick={handleCollectionClick}>📊 내 컬렉션</button>
+          <button className="sidebar-btn" onClick={handleFavoritesClick}>⭐ 찜 목록</button>
+          <button className="sidebar-btn" onClick={() => { document.querySelector('.search-input-large')?.focus(); }}>🔎 검색</button>
+          <button className="sidebar-btn">📘 도움말</button>
+          <div className="sidebar-divider" />
+          <button className="sidebar-btn">👤 프로필</button>
+          <button className="sidebar-btn">⚙️ 설정</button>
+        </aside>
+
+        <div className="home-content">
         {/* 검색 바 & 필터 섹션 */}
         <div className="search-filter-wrapper">
           {/* 필터 섹션 */}
@@ -175,73 +195,59 @@ function HomePage({
             />
           </div>
 
-          {/* 필터 드롭다운 */}
-          {showFilters && (
-            <div className="filters-container">
-              {/* 타입 필터 */}
-              <div className="filter-card">
-                <h4>🔥 타입</h4>
-                <div className="filter-tags">
-                  <span 
-                    className={`tag ${selectedType === '' ? 'active' : ''}`}
-                    onClick={() => handleTypeChange('')}
-                  >
-                    모든 타입
-                  </span>
-                  {cardTypes.map(type => (
-                    <span 
-                      key={type} 
-                      className={`tag ${selectedType === type ? 'active' : ''}`}
-                      onClick={() => handleTypeChange(type)}
-                    >
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
 
-              {/* 레어도 필터 */}
-              <div className="filter-card">
-                <h4>✨ 레어도</h4>
-                <div className="filter-tags">
-                  <span 
-                    className={`tag ${selectedRarity === '' ? 'active' : ''}`}
-                    onClick={() => handleRarityChange('')}
-                  >
-                    모든 레어도
-                  </span>
-                  {rarities.map(rarity => (
-                    <span 
-                      key={rarity}
-                      className={`tag ${selectedRarity === rarity ? 'active' : ''}`}
-                      onClick={() => handleRarityChange(rarity)}
-                    >
-                      {rarity}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* 사용자 메뉴 */}
-        {user && (
-          <div className="user-menu">
-            <button 
-              className="menu-btn"
-              onClick={handleCollectionClick}
-            >
-              📊 내 컬렉션
-            </button>
-            <button 
-              className="menu-btn"
-              onClick={handleFavoritesClick}
-            >
-              ⭐ 찜 목록
-            </button>
+        {/* 필터 드롭다운 (wrapper 아래에 위치하여 문서 흐름으로 카드 영역을 밀어냄) */}
+        {showFilters && (
+          <div className="filters-container">
+            {/* 타입 필터 */}
+            <div className="filter-card">
+              <h4>🔥 타입</h4>
+              <div className="filter-tags">
+                <span
+                  className={`tag ${selectedType === '' ? 'active' : ''}`}
+                  onClick={() => handleTypeChange('')}
+                >
+                  모든 타입
+                </span>
+                {cardTypes.map(type => (
+                  <span
+                    key={type}
+                    className={`tag ${selectedType === type ? 'active' : ''}`}
+                    onClick={() => handleTypeChange(type)}
+                  >
+                    {type}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* 레어도 필터 */}
+            <div className="filter-card">
+              <h4>✨ 레어도</h4>
+              <div className="filter-tags">
+                <span
+                  className={`tag ${selectedRarity === '' ? 'active' : ''}`}
+                  onClick={() => handleRarityChange('')}
+                >
+                  모든 레어도
+                </span>
+                {rarities.map(rarity => (
+                  <span
+                    key={rarity}
+                    className={`tag ${selectedRarity === rarity ? 'active' : ''}`}
+                    onClick={() => handleRarityChange(rarity)}
+                  >
+                    {rarity}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         )}
+
+
 
         {/* 카드 그리드 */}
         {cardsLoading ? (
@@ -342,6 +348,7 @@ function HomePage({
             )}
           </>
         )}
+        </div>
       </div>
 
       {/* 푸터 */}
@@ -351,7 +358,7 @@ function HomePage({
 
       {/* 로그인 모달 */}
       {showLoginModal && (
-        <LoginModal onClose={() => setShowLoginModal(false)} />
+        <LoginModal onClose={() => setShowLoginModal(false)} initialIsSignUp={modalIsSignUp} />
       )}
     </div>
   );

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { supabase } from './supabase';
 
-function LoginModal({ onClose }) {
+function LoginModal({ onClose, initialIsSignUp = false, onSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(initialIsSignUp);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -28,7 +28,12 @@ function LoginModal({ onClose }) {
           password
         });
         if (signInError) throw signInError;
-        window.location.reload(); // 로그인 성공 후 새로고침
+        // 로그인 성공 처리: onSuccess 콜백이 제공되면 호출, 아니면 페이지 리로드
+        if (typeof onSuccess === 'function') {
+          onSuccess();
+        } else {
+          window.location.reload(); // 기존 동작: 로그인 성공 후 새로고침
+        }
       }
     } catch (error) {
       setError(`❌ ${error.message}`);

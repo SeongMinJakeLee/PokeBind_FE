@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
+import LoginModal from './LoginModal';
 
 function CardDetailPage({ card, user: propUser, onBack }) {
   const [user, setUser] = useState(propUser || null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [isOwned, setIsOwned] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ function CardDetailPage({ card, user: propUser, onBack }) {
 
   const toggleOwned = async () => {
     if (!user) {
-      alert('로그인이 필요합니다.');
+      setShowLoginModal(true);
       return;
     }
 
@@ -88,7 +90,7 @@ function CardDetailPage({ card, user: propUser, onBack }) {
 
   const toggleFavorite = async () => {
     if (!user) {
-      alert('로그인이 필요합니다.');
+      setShowLoginModal(true);
       return;
     }
 
@@ -121,6 +123,9 @@ function CardDetailPage({ card, user: propUser, onBack }) {
 
   return (
     <div className="detail-container">
+      {showLoginModal && (
+        <LoginModal onClose={() => { setShowLoginModal(false); getUser(); }} />
+      )}
       <button onClick={onBack} className="back-btn">← 돌아가기</button>
 
       <div className="detail-content">

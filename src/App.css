@@ -34,6 +34,8 @@ body {
   padding: 2rem 1rem;
   border-right: 1px solid #3a3a3a;
   overflow-y: auto;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
   white-space: nowrap;
   position: fixed;
   left: -250px;
@@ -41,6 +43,11 @@ body {
   height: 100vh;
   transition: left 0.3s ease;
   z-index: 999;
+}
+
+/* hide webkit scrollbar while preserving scroll behavior */
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar.open {
@@ -393,12 +400,43 @@ body {
 
 /* 푸터 */
 .footer {
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   text-align: center;
-  background: #2a2a2a;
+  background: rgba(42,42,42,0.95);
   border-top: 1px solid #3a3a3a;
   color: #999;
   font-size: 0.9rem;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  backdrop-filter: blur(6px);
+}
+
+/* Force 5-column grid on cards grid for desktop */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1.1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1200px) {
+  .cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
 }
 
 .container {
@@ -1225,6 +1263,7 @@ body {
   flex-direction: column;
   height: 100vh;
   background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+  overflow: hidden; /* prevent outer scrollbar; inner content scrolls in .home-content */
 }
 
 .home-header {
@@ -1295,6 +1334,23 @@ body {
   box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
+.btn-signup {
+  padding: 0.4rem 0.9rem;
+  background: white;
+  color: #667eea;
+  border: 1px solid #667eea;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-signup:hover {
+  background: #f0f4ff;
+  transform: translateY(-2px);
+}
+
 .btn-logout {
   background: #ff6b6b;
   color: white;
@@ -1310,15 +1366,182 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 2rem;
+  padding: 2.25rem;
+  padding-bottom: 6rem; /* leave space for fixed footer */
   margin: 0 auto;
   width: 100%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 120px);
 }
+
+/* Landing page center box */
+.landing-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 120px);
+}
+
+.landing-box {
+  width: min(900px, 95%);
+  background: transparent;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.landing-logo {
+  width: 220px;
+  height: auto;
+  display: block;
+  margin: 0 auto 2rem; /* increased spacing between logo and search */
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.6));
+}
+
+/* Landing-specific search styles (isolated from other pages) */
+.landing-search-section {
+  display: flex;
+  gap: 0;
+  width: 100%;
+  max-width: 760px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.landing-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0.55rem 0.9rem;
+  background: rgba(30, 30, 30, 0.95);
+  border: none;
+  color: #f7f7f7;
+  font-size: 1rem;
+  transition: all 0.18s;
+}
+
+.landing-search-input:focus {
+  outline: none;
+  background: rgba(58, 58, 58, 1);
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.12);
+}
+
+.landing-search-btn {
+  padding: 0 1rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background 0.18s;
+  font-size: 0.82rem; /* slightly smaller */
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap; /* prevent wrapping like "검\n색" */
+  min-width: 64px; /* ensure button isn't too narrow */
+}
+
+/* Rules for pages with compact filter button to adjust radii based on open state */
+.search-filter-wrapper.has-filter-btn .accordion-btn-compact {
+  border-radius: 8px 0 0 8px;
+}
+
+.search-filter-wrapper.has-filter-btn:not(.filters-open) .search-input-large {
+  /* when filter is closed, remove left radius so input aligns flush */
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.search-filter-wrapper.has-filter-btn.filters-open .search-input-large {
+  /* when filter open, remove bottom-right radius so it connects to dropdown */
+  border-bottom-right-radius: 0;
+}
+
+.search-filter-wrapper.has-filter-btn.filters-open .accordion-btn-compact {
+  /* when filter open, remove bottom-left radius of filter button */
+  border-bottom-left-radius: 0;
+}
+
+.landing-search-btn:hover {
+  background: #5a63d9;
+}
+
+/* Sidebar layout */
+.main-with-sidebar {
+  display: flex;
+  gap: 1.5rem;
+  align-items: stretch;
+  width: 100%;
+  flex: 1; /* fill available vertical space between header and footer */
+  min-height: calc(100vh - 130px); /* ensure it occupies visible area under header */
+}
+
+/* Ensure in-layout sidebar takes precedence over slide-out fixed sidebar rules */
+.main-with-sidebar > .sidebar {
+  width: 200px !important;
+  background: linear-gradient(180deg, #222226 0%, #161616 100%) !important;
+  color: #e6e6e6 !important;
+  padding: 1.25rem 0.75rem !important;
+  border-radius: 6px !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  left: 0 !important;
+  top: auto !important;
+  align-self: stretch !important;
+  border-right: 1px solid rgba(255,255,255,0.03) !important;
+  z-index: 2 !important;
+  display: block !important;
+}
+
+/* Hide page-level vertical scrollbar while keeping inner scrolling */
+.homepage {
+  overflow: hidden; /* already set above but repeat to ensure specificity */
+}
+
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  background: transparent;
+  color: #e6e6e6;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 0.4rem;
+}
+
+.sidebar-btn:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 0.75rem 0;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    display: none;
+  }
+  .main-with-sidebar {
+    padding: 0;
+  }
+}
+
 
 .search-filter-wrapper {
   display: flex;
   gap: 0;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
   align-items: flex-start;
   width: 100%;
   position: relative;
@@ -1334,16 +1557,15 @@ body {
 
 .search-input-large {
   width: 100%;
-  height: 65px;
-  padding: 1rem;
-  background: rgba(58, 58, 58, 0.8);
-  border: 2px solid #444;
-  border-left: none;
-  border-radius: 0 8px 0 0;
+  height: 44px; /* match accordion-btn-compact height */
+  padding: 0.55rem 0.9rem;
+  background: rgba(58, 58, 58, 0.9);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 0 8px 8px 0; /* round only right side by default */
   color: white;
-  font-size: 1.1rem;
-  transition: all 0.3s;
-  margin-left: -2px;
+  font-size: 1rem;
+  transition: all 0.18s;
+  margin-left: 0;
 }
 
 .search-input-large:focus {
@@ -1401,20 +1623,20 @@ body {
 }
 
 .accordion-btn-compact {
-  padding: 1rem;
-  background: rgba(102, 126, 234, 0.2);
-  border: 2px solid #444;
-  border-radius: 8px 0 0 0;
-  color: #fff;
+  padding: 0.55rem 0.75rem;
+  background: linear-gradient(180deg, #2f3b66, #223052);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px 0 0 8px;
+  color: #f3f6ff;
   font-size: 0.95rem;
   cursor: pointer;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   gap: 0.5rem;
-  transition: all 0.2s;
+  transition: all 0.18s;
   white-space: nowrap;
-  height: fit-content;
+  height: 44px;
 }
 
 .accordion-btn-compact:hover {
@@ -1446,20 +1668,18 @@ body {
 }
 
 .filters-container {
-  position: absolute;
-  top: 65px;
-  left: 0;
-  right: -2px;
-  display: grid;
-  grid-template-columns: 1fr;
+  /* Make dropdown participate in document flow so it pushes content down */
+  position: static;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   gap: 1rem;
   padding: 1rem;
   background: rgba(42, 42, 42, 0.6);
   border: 2px solid #444;
   border-top: none;
   border-radius: 0 0 0 0;
-  margin-right: 4px;
-  z-index: 10;
+  margin-top: 0;
 }
 
 .filter-card {
