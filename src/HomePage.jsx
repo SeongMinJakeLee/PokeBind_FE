@@ -126,7 +126,7 @@ function HomePage({
       {/* 헤더 */}
       <header className="home-header">
         <div className="header-left">
-          <h1 className="logo">🎴 포켓몬 TCG 도감</h1>
+          <h1 className="logo"><img src="/Header_Logo.png" alt="logo" className="header-logo" /> 포켓몬 TCG 도감</h1>
         </div>
         <div className="header-right">
           {user ? (
@@ -270,7 +270,7 @@ function HomePage({
                       src={card.image_url} 
                       alt={card.name}
                       loading="lazy"
-                      style={{ width: '100%', height: '250px', objectFit: 'cover' }}
+                      style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
                     />
                   ) : (
                     <div className="no-image">{card.name}</div>

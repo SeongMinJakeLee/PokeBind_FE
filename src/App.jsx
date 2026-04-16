@@ -49,8 +49,26 @@ function App() {
   const [listShowFilters, setListShowFilters] = useState(false);
 
   useEffect(() => {
-    checkAuth(setUser, setLoading);
-    subscribeToAuthChanges(setUser);
+    // On dev startup, clear any existing auth session so app always starts logged-out.
+    // Use Vite's import.meta.env.DEV flag to detect development mode.
+    const init = async () => {
+      try {
+        if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
+          try {
+            await supabase.auth.signOut();
+            setUser(null);
+          } catch (err) {
+            console.warn('Failed to sign out on dev init:', err);
+          }
+        }
+      } finally {
+        // Always check current session state after attempting sign out
+        await checkAuth(setUser, setLoading);
+        subscribeToAuthChanges(setUser);
+      }
+    };
+
+    init();
   }, []);
 
   // 카드 데이터 한 번만 로드

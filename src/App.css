@@ -258,6 +258,29 @@ body {
   margin-bottom: 1rem;
 }
 
+/* Header logo next to site title */
+.header-left .logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.header-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.modal-header-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+
 .modal-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
@@ -734,9 +757,9 @@ body {
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(5, 0.1fr);
-  gap: 0.1rem 0.1rem;
-  row-gap: 1rem;
+  grid-template-columns: repeat(5, 260px); /* fixed card column width */
+  gap: 40px 40px; /* column gap, row gap */
+  row-gap: 48px;
   justify-items: center;
   justify-content: center;
 }
@@ -747,10 +770,11 @@ body {
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
-  max-width: 240px;
+  max-width: 260px; /* card column width to match grid */
+  width: 100%;
   margin: 0 auto;
   border: 2px solid transparent;
 }
@@ -783,15 +807,22 @@ body {
 .card-item img {
   width: 100%;
   height: auto;
+  max-height: 360px; /* constrain max height but show full image */
+  object-fit: contain; /* show whole image without cropping */
   display: block;
   background: #f9f9f9;
 }
 
 .no-image {
   width: 100%;
-  height: 250px;
+  height: 360px; /* match max image height */
   display: flex;
   align-items: center;
+  justify-content: center;
+  background: #eee;
+  color: #777;
+  text-align: center;
+  padding: 1rem;
   justify-content: center;
   background: #f0f0f0;
   color: #999;
@@ -1379,6 +1410,183 @@ body {
   align-items: center;
   justify-content: center;
   height: calc(100vh - 120px);
+  position: relative; /* for floating pokeballs positioning */
+}
+
+/* Universe background: layered stars and blurred gradient blobs similar to Toss Universe */
+.universe-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: radial-gradient(closest-side at 10% 20%, rgba(255,255,255,0.02), transparent 30%),
+              radial-gradient(closest-side at 80% 80%, rgba(0,123,255,0.04), transparent 40%),
+              linear-gradient(180deg, rgba(8,10,18,0.6), rgba(2,4,10,0.9));
+}
+
+/* twinkling stars layer */
+.universe-bg .stars {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(#ffffff55 1px, transparent 1px), radial-gradient(#ffffff33 1px, transparent 1px);
+  background-size: 3px 3px, 6px 6px;
+  background-position: 2px 3px, 40px 60px;
+  opacity: 0.85;
+  filter: blur(0.3px);
+  animation: twinkle 6s linear infinite;
+}
+
+@keyframes twinkle {
+  0% { opacity: 0.6; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+  100% { opacity: 0.6; transform: translateY(0); }
+}
+
+/* blurred colorful blobs */
+.universe-bg .blob {
+  position: absolute;
+  filter: blur(36px) saturate(120%);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+  transform: translateZ(0);
+}
+
+.universe-bg .b1 { width: 420px; height: 420px; left: -10%; top: 10%; background: radial-gradient(circle at 30% 30%, #ff6b6b 0%, transparent 30%), radial-gradient(circle at 70% 70%, #a855f7 0%, transparent 40%); animation: blobMove1 12s ease-in-out infinite; }
+.universe-bg .b2 { width: 520px; height: 520px; right: -14%; top: 30%; background: radial-gradient(circle at 20% 20%, #3b82f6 0%, transparent 30%), radial-gradient(circle at 80% 80%, #06b6d4 0%, transparent 40%); animation: blobMove2 14s ease-in-out infinite; }
+.universe-bg .b3 { width: 320px; height: 320px; left: 40%; bottom: -12%; background: radial-gradient(circle at 30% 30%, #f59e0b 0%, transparent 30%), radial-gradient(circle at 70% 70%, #ef4444 0%, transparent 40%); animation: blobMove3 10s ease-in-out infinite; }
+
+@keyframes blobMove1 { 0%{transform:translateY(0) translateX(0) scale(1);} 50%{transform:translateY(-30px) translateX(12px) scale(1.05);} 100%{transform:translateY(0) translateX(0) scale(1);} }
+@keyframes blobMove2 { 0%{transform:translateY(0) translateX(0) scale(1);} 50%{transform:translateY(20px) translateX(-20px) scale(1.02);} 100%{transform:translateY(0) translateX(0) scale(1);} }
+@keyframes blobMove3 { 0%{transform:translateY(0) translateX(0) scale(1);} 50%{transform:translateY(-16px) translateX(8px) scale(1.03);} 100%{transform:translateY(0) translateX(0) scale(1);} }
+
+/* Floating pokeballs (CSS-based pseudo-3D spheres) */
+.floating-pokeballs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+
+/* hide legacy star layer if present */
+.universe-bg .stars { display: none; }
+
+/* keep background black */
+.universe-bg { background: #000; }
+
+/* 3D-like pokeball using transforms and pseudo-elements */
+.pokeball-3d {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  transform-style: preserve-3d;
+  perspective: 800px;
+  display: block;
+  opacity: 0.95;
+  will-change: transform;
+  animation: bob 6.5s ease-in-out infinite;
+}
+
+.pokeball-3d::before,
+.pokeball-3d::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+  border: 6px solid rgba(33,33,33,0.9);
+}
+
+/* top (red) and bottom (white) halves, slightly separated in Z to fake curvature */
+.pokeball-3d::before {
+  background: linear-gradient(180deg, #ff3b3b 0%, #e33 55%);
+  transform: rotateX(20deg) translateZ(6px);
+  clip-path: inset(0 0 50% 0);
+}
+
+.pokeball-3d::after {
+  background: linear-gradient(180deg, #fff 0%, #f2f2f2 100%);
+  transform: rotateX(-20deg) translateZ(3px);
+  clip-path: inset(50% 0 0 0);
+}
+
+/* central button */
+.pokeball-3d .center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translateZ(10px);
+  width: 26px;
+  height: 26px;
+  background: #fff;
+  border-radius: 50%;
+  border: 5px solid #333;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* subtle rim across middle */
+.pokeball-3d .rim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 8px;
+  transform: translateY(-50%) translateZ(8px);
+  background: #333;
+}
+
+/* spin and tilt animation to simulate 3D rotation */
+@keyframes spin3d {
+  0% { transform: rotateX(8deg) rotateY(0deg) translateZ(0); }
+  50% { transform: rotateX(12deg) rotateY(180deg) translateZ(0); }
+  100% { transform: rotateX(8deg) rotateY(360deg) translateZ(0); }
+}
+
+/* gentle bobbing */
+@keyframes bob {
+  0% { transform: translateY(0) rotateX(10deg) rotateY(0deg); }
+  50% { transform: translateY(-18px) rotateX(12deg) rotateY(180deg); }
+  100% { transform: translateY(0) rotateX(10deg) rotateY(360deg); }
+}
+
+.pokeball-3d.spin { animation: bob 6.5s ease-in-out infinite, spin3d 9s linear infinite; }
+
+/* individual positions and sizes */
+.pokeball-3d.p1 { left: 8%; top: 20%; width: 72px; height: 72px; }
+.pokeball-3d.p2 { right: 6%; top: 8%; width: 56px; height: 56px; animation-delay: 0.6s; }
+.pokeball-3d.p3 { left: 30%; top: 60%; width: 84px; height: 84px; animation-delay: 1.2s; }
+.pokeball-3d.p4 { right: 28%; top: 50%; width: 64px; height: 64px; animation-delay: 0.3s; }
+.pokeball-3d.p5 { left: 54%; top: 16%; width: 56px; height: 56px; animation-delay: 1s; }
+.pokeball-3d.p6 { left: 76%; top: 38%; width: 68px; height: 68px; animation-delay: 0.4s; }
+
+/* responsive scaling */
+@media (max-width: 992px) {
+  .pokeball-3d { opacity: 0.95; }
+  .pokeball-3d.p3 { width: 68px; height: 68px; left: 26%; top: 58%; }
+}
+
+@media (max-width: 600px) {
+  .pokeball-3d { opacity: 0.9; }
+  .pokeball-3d { width: 44px; height: 44px; }
+  .pokeball-3d .center { width: 18px; height: 18px; border-width: 4px; }
+}
+
+/* ensure landing content stays on top */
+.landing-box { position: relative; z-index: 3; }
+
+.landing-box {
+  width: min(900px, 95%);
+  background: transparent;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 3;
 }
 
 .landing-box {

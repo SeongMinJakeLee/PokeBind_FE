@@ -47,7 +47,7 @@ function LoginModal({ onClose, initialIsSignUp = false, onSuccess }) {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>✕</button>
         
-        <h1 className="modal-title">🎴 포켓몬 TCG 도감</h1>
+        <h1 className="modal-title"><img src="/Header_Logo.png" alt="logo" className="modal-header-logo" /> 🎴 포켓몬 TCG 도감</h1>
         <p className="modal-subtitle">카드 컬렉션 관리 서비스</p>
 
         <form onSubmit={handleAuth}>

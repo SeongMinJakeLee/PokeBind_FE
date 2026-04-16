@@ -107,7 +107,7 @@ function CardListPage({
       <div className="main-content">
       <div className="header">
         <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
-        <h1>🎴 포켓몬 TCG 도감</h1>
+        <h1><img src="/Header_Logo.png" alt="logo" className="header-logo" /> 포켓몬 TCG 도감</h1>
         <div className="user-info">
           <span>{user.email}</span>
           <button onClick={onLogout} className="logout-btn">로그아웃</button>
@@ -196,7 +196,7 @@ function CardListPage({
                     src={card.image_url} 
                     alt={card.name}
                     loading="lazy"
-                    style={{ width: '100%', height: '250px', objectFit: 'cover' }}
+                    style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
                   />
                 ) : (
                   <div className="no-image">{card.name}</div>
