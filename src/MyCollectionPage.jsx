@@ -176,7 +176,8 @@ function MyCollectionPage({ user, onBack, cards, onNavigate }) {
 
       <div className="main-with-sidebar">
         <aside className="sidebar">
-          <button className="sidebar-btn">⭐ 찜 목록</button>
+          <button className="sidebar-btn" onClick={() => onNavigate?.('collection')}>📊 내 컬렉션</button>
+          <button className="sidebar-btn" onClick={() => onNavigate?.('favorites')}>⭐ 찜 목록</button>
           <button className="sidebar-btn" onClick={() => onNavigate?.('list')}>🔎 검색</button>
           <button className="sidebar-btn">📘 도움말</button>
           <div className="sidebar-divider" />

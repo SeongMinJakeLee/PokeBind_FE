@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 import LoginModal from './LoginModal';
 
-function CardDetailPage({ card, user: propUser, onBack }) {
+function CardDetailPage({ card, user: propUser, onBack, onNavigate }) {
   const [user, setUser] = useState(propUser || null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
   const [isOwned, setIsOwned] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -59,20 +60,22 @@ function CardDetailPage({ card, user: propUser, onBack }) {
 
   const toggleOwned = async () => {
     if (!user) {
+      setPendingAction('owned');
       setShowLoginModal(true);
       return;
     }
 
     try {
       if (isOwned) {
-        await supabase
+        const { error } = await supabase
           .from('user_cards')
           .delete()
           .eq('user_id', user.id)
           .eq('card_id', card.id);
+        if (error) throw error;
         setIsOwned(false);
       } else {
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from('user_cards')
           .insert({
             user_id: user.id,
@@ -84,12 +87,13 @@ function CardDetailPage({ card, user: propUser, onBack }) {
       }
     } catch (error) {
       console.error('❌ 보유 카드 업데이트 실패:', error);
-      alert('카드 업데이트에 실패했습니다.');
+      alert('카드 업데이트에 실패했습니다. ' + (error.message || error));
     }
   };
 
   const toggleFavorite = async () => {
     if (!user) {
+      setPendingAction('favorite');
       setShowLoginModal(true);
       return;
     }
@@ -103,17 +107,18 @@ function CardDetailPage({ card, user: propUser, onBack }) {
           .eq('card_id', card.id);
         setIsFavorited(false);
       } else {
-        await supabase
+        const { error } = await supabase
           .from('user_favorites')
           .insert({
             user_id: user.id,
             card_id: card.id
           });
+        if (error) throw error;
         setIsFavorited(true);
       }
     } catch (error) {
       console.error('❌ 찜 업데이트 실패:', error);
-      alert('찜 업데이트에 실패했습니다.');
+      alert('찜 업데이트에 실패했습니다. ' + (error.message || error));
     }
   };
 
@@ -124,7 +129,52 @@ function CardDetailPage({ card, user: propUser, onBack }) {
   return (
     <div className="detail-container">
       {showLoginModal && (
-        <LoginModal onClose={() => { setShowLoginModal(false); getUser(); }} />
+        <LoginModal
+          onClose={() => { setShowLoginModal(false); setPendingAction(null); getUser(); }}
+          onSuccess={async () => {
+            setShowLoginModal(false);
+            try {
+              const { data: { session } } = await supabase.auth.getSession();
+              const currentUser = session?.user;
+              if (currentUser) {
+                setUser(currentUser);
+                if (pendingAction === 'favorite') {
+                  try {
+                    const { data: favData, error: favError } = await supabase
+                      .from('user_favorites')
+                      .insert({ user_id: currentUser.id, card_id: card.id });
+                    if (favError) {
+                      console.error('찜 추가 에러', favError);
+                      alert('찜 추가 중 오류가 발생했습니다.');
+                    } else {
+                      setIsFavorited(true);
+                    }
+                  } catch (err) {
+                    console.error('찜 추가 에러', err);
+                  }
+                } else if (pendingAction === 'owned') {
+                  try {
+                    const { data: ownedData, error: ownedError } = await supabase
+                      .from('user_cards')
+                      .insert({ user_id: currentUser.id, card_id: card.id, quantity: 1 });
+                    if (ownedError) {
+                      console.error('보유 추가 에러', ownedError);
+                      alert('보유 카드 추가 중 오류가 발생했습니다.');
+                    } else {
+                      setIsOwned(true);
+                    }
+                  } catch (err) {
+                    console.error('보유 추가 에러', err);
+                  }
+                }
+              }
+            } catch (err) {
+              console.error('로그인 후 처리 실패', err);
+            } finally {
+              setPendingAction(null);
+            }
+          }}
+        />
       )}
       <button onClick={onBack} className="back-btn">← 돌아가기</button>
 

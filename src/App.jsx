@@ -6,6 +6,7 @@ import HomePage from './HomePage';
 import CardListPage from './CardListPage';
 import CardDetailPage from './CardDetailPage';
 import MyCollectionPage from './MyCollectionPage';
+import FavoritesPage from './FavoritesPage';
 import LandingPage from './LandingPage';
 
 const checkAuth = async (setUser, setLoading) => {
@@ -158,6 +159,7 @@ function App() {
           setCurrentPage('list');
           setSelectedCard(null);
         }}
+        onNavigate={(page) => setCurrentPage(page)}
       />
     );
   }
@@ -175,6 +177,22 @@ function App() {
           setCurrentPage('landing');
         }}
         onNavigate={(page) => setCurrentPage(page)}
+      />
+    );
+  }
+
+  // 찜 목록 (로그인 필요)
+  if (currentPage === 'favorites') {
+    if (!user) {
+      setCurrentPage('landing');
+      return <div></div>;
+    }
+    return (
+      <FavoritesPage
+        user={user}
+        onBack={() => setCurrentPage('landing')}
+        onNavigate={(page) => setCurrentPage(page)}
+        onSelectCard={(card) => { setSelectedCard(card); setCurrentPage('detail'); }}
       />
     );
   }

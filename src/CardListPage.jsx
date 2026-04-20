@@ -214,7 +214,7 @@ function CardListPage({
         {/* 좌측 사이드바 */}
         <aside className="sidebar">
           <button className="sidebar-btn" onClick={() => { if (!user) { setModalIsSignUp(false); setRedirectAfterLogin('collection'); setShowLoginModal(true); } else { onNavigate?.('collection'); } }}>📊 내 컬렉션</button>
-          <button className="sidebar-btn">⭐ 찜 목록</button>
+          <button className="sidebar-btn" onClick={() => { if (!user) { setModalIsSignUp(false); setRedirectAfterLogin('favorites'); setShowLoginModal(true); } else { onNavigate?.('favorites'); } }}>⭐ 찜 목록</button>
           <button className="sidebar-btn" onClick={() => onNavigate?.('list')}>🔎 검색</button>
           <button className="sidebar-btn">📘 도움말</button>
           <div className="sidebar-divider" />

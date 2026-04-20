@@ -1576,6 +1576,7 @@ body {
 }
 
 /* ensure landing content stays on top */
+.floating-pokeballs, .pokeball-3d { display: none !important; }
 .landing-box { position: relative; z-index: 3; }
 
 .landing-box {
@@ -1670,6 +1671,17 @@ body {
 .search-filter-wrapper.has-filter-btn.filters-open .accordion-btn-compact {
   /* when filter open, remove bottom-left radius of filter button */
   border-bottom-left-radius: 0;
+}
+
+/* Hide filters container by default; only show when search-filter-wrapper has .filters-open */
+.filters-container {
+  display: none;
+  margin-top: 0.6rem;
+}
+.search-filter-wrapper.filters-open + .filters-container,
+.search-filter-wrapper.has-filter-btn.filters-open + .filters-container,
+.search-filter-wrapper.has-filter-btn.filters-open ~ .filters-container {
+  display: block;
 }
 
 .landing-search-btn:hover {
