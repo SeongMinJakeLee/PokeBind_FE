@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabase';
+import { supabase, safeGetSession } from './supabase';
 import './App.css';
 import LoginModal from './LoginModal';
 import HomePage from './HomePage';
@@ -8,27 +8,46 @@ import CardDetailPage from './CardDetailPage';
 import MyCollectionPage from './MyCollectionPage';
 import FavoritesPage from './FavoritesPage';
 import LandingPage from './LandingPage';
+import ProfilePage from './ProfilePage';
 
 const checkAuth = async (setUser, setLoading) => {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await safeGetSession();
     setUser(session?.user || null);
     setLoading(false);
+    return session;
   } catch (error) {
     console.error('❌ 인증 확인 실패:', error);
     setLoading(false);
+    return null;
   }
 };
 
-const subscribeToAuthChanges = (setUser) => {
-  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+const subscribeToAuthChanges = (setUser, setProfile) => {
+  const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
     setUser(session?.user || null);
+    if (session?.user) {
+      try {
+        const { data: profileData, error } = await supabase
+          .from('users')
+          .select('username, avatar_url')
+          .eq('id', session.user.id)
+          .single();
+        setProfile(!error && profileData ? profileData : null);
+      } catch (err) {
+        console.error('Failed to fetch profile on auth change', err);
+        setProfile(null);
+      }
+    } else {
+      setProfile(null);
+    }
   });
   return data.subscription;
 };
 
 function App() {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState([]);
   const [cardsLoading, setCardsLoading] = useState(true);
@@ -49,6 +68,10 @@ function App() {
   const [listSortBy, setListSortBy] = useState('name');
   const [listShowFilters, setListShowFilters] = useState(false);
 
+  // App-level login modal for landing/main header
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [modalIsSignUp, setModalIsSignUp] = useState(false);
+
   useEffect(() => {
     // On dev startup, clear any existing auth session so app always starts logged-out.
     // Use Vite's import.meta.env.DEV flag to detect development mode.
@@ -58,14 +81,29 @@ function App() {
           try {
             await supabase.auth.signOut();
             setUser(null);
+            setProfile(null);
           } catch (err) {
             console.warn('Failed to sign out on dev init:', err);
           }
         }
       } finally {
         // Always check current session state after attempting sign out
-        await checkAuth(setUser, setLoading);
-        subscribeToAuthChanges(setUser);
+        const session = await checkAuth(setUser, setLoading);
+        if (session?.user) {
+          try {
+            const { data: profileData, error } = await supabase
+              .from('users')
+              .select('username, avatar_url')
+              .eq('id', session.user.id)
+              .single();
+            setProfile(!error && profileData ? profileData : null);
+          } catch (err) {
+            console.error('프로필 로드 실패(init):', err);
+          }
+        }
+        subscribeToAuthChanges(setUser, setProfile);
+
+
       }
     };
 
@@ -76,6 +114,8 @@ function App() {
   useEffect(() => {
     fetchCards();
   }, []);
+
+
 
   const fetchCards = async () => {
     try {
@@ -139,9 +179,20 @@ function App() {
       console.log('✅ 카드 로드 완료:', allData.length, '장');
     } catch (error) {
       console.error('❌ 카드 조회 실패:', error);
-      setCards([]);
+      // If we already have cards loaded, don't clear them on background refresh failure.
+      setCards(prev => (prev && prev.length > 0) ? prev : []);
     } finally {
       setCardsLoading(false);
+    }
+  };
+
+  // Called by child pages when a login completes so App can refresh user state immediately
+  const handleLoginSuccess = async () => {
+    try {
+      const { data: { session } } = await safeGetSession();
+      setUser(session?.user || null);
+    } catch (err) {
+      console.error('handleLoginSuccess failed', err);
     }
   };
 
@@ -173,10 +224,12 @@ function App() {
     return (
       <MyCollectionPage
         user={user}
+        profile={profile}
         onBack={() => {
           setCurrentPage('landing');
         }}
         onNavigate={(page) => setCurrentPage(page)}
+        onShowLogin={() => { setModalIsSignUp(false); setShowLoginModal(true); }}
       />
     );
   }
@@ -190,9 +243,27 @@ function App() {
     return (
       <FavoritesPage
         user={user}
+        profile={profile}
         onBack={() => setCurrentPage('landing')}
         onNavigate={(page) => setCurrentPage(page)}
         onSelectCard={(card) => { setSelectedCard(card); setCurrentPage('detail'); }}
+        onShowLogin={() => { setModalIsSignUp(false); setShowLoginModal(true); }}
+      />
+    );
+  }
+
+  // 프로필 화면 (로그인 필요)
+  if (currentPage === 'profile') {
+    if (!user) {
+      setCurrentPage('landing');
+      return <div></div>;
+    }
+    return (
+      <ProfilePage
+        user={user}
+        profile={profile}
+        onBack={() => setCurrentPage('landing')}
+        onNavigate={(page) => setCurrentPage(page)}
       />
     );
   }
@@ -202,10 +273,11 @@ function App() {
     return (
       <CardListPage
         user={user}
+        profile={profile}
         cards={cards}
         cardsLoading={cardsLoading}
         onSelectCard={(card) => { setSelectedCard(card); setCurrentPage('detail'); }}
-        onLogout={() => { supabase.auth.signOut(); setUser(null); }}
+        onLogout={() => { supabase.auth.signOut(); setUser(null); setProfile(null); }}
         searchText={homeSearchText}
         setSearchText={setHomeSearchText}
         currentPage={homeCurrentPage}
@@ -219,6 +291,7 @@ function App() {
         showFilters={false}
         setShowFilters={() => {}}
         onNavigate={(page) => setCurrentPage(page)}
+        onLoginSuccess={handleLoginSuccess}
       />
     );
   }
@@ -226,15 +299,39 @@ function App() {
   // 랜딩(메인) 페이지: 검색/필터만 중앙에 배치
   if (currentPage === 'landing') {
     return (
-      <LandingPage
-        searchText={homeSearchText}
-        setSearchText={setHomeSearchText}
-        selectedType={homeSelectedType}
-        setSelectedType={setHomeSelectedType}
-        selectedRarity={homeSelectedRarity}
-        setSelectedRarity={setHomeSelectedRarity}
-        onSearch={() => { setCurrentPage('list'); setHomeCurrentPage(1); }}
-      />
+      <>
+        <LandingPage
+          searchText={homeSearchText}
+          setSearchText={setHomeSearchText}
+          selectedType={homeSelectedType}
+          setSelectedType={setHomeSelectedType}
+          selectedRarity={homeSelectedRarity}
+          setSelectedRarity={setHomeSelectedRarity}
+          onSearch={() => { setCurrentPage('list'); setHomeCurrentPage(1); }}
+          user={user}
+          profile={profile}
+          onShowLogin={() => { setModalIsSignUp(false); setShowLoginModal(true); }}
+          onShowSignUp={() => { setModalIsSignUp(true); setShowLoginModal(true); }}
+          onLogout={async () => { await supabase.auth.signOut(); setUser(null); setCurrentPage('landing'); setProfile(null); }}
+          onNavigate={(page) => setCurrentPage(page)}
+        />
+
+        {showLoginModal && (
+          <LoginModal
+            onClose={() => setShowLoginModal(false)}
+            initialIsSignUp={modalIsSignUp}
+            onSuccess={async () => {
+              setShowLoginModal(false);
+              try {
+                const { data: { session } } = await safeGetSession();
+                setUser(session?.user || null);
+              } catch (err) {
+                console.error('로그인 후 사용자 설정 실패', err);
+              }
+            }}
+          />
+        )}
+      </>
     );
   }
 

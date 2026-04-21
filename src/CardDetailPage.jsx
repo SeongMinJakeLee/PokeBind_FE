@@ -1,14 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from './supabase';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase, safeGetSession } from './supabase';
 import LoginModal from './LoginModal';
 
-function CardDetailPage({ card, user: propUser, onBack, onNavigate }) {
+function CardDetailPage({ card, user: propUser, onBack, onNavigate, onFavoriteToggled, onCollectionToggled }) {
   const [user, setUser] = useState(propUser || null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [isOwned, setIsOwned] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // notify parent App when ownership/favorite state changes
+  const _prevOwned = useRef(isOwned);
+  const _prevFav = useRef(isFavorited);
+  useEffect(() => {
+    if (_prevOwned.current !== isOwned) {
+      if (typeof onCollectionToggled === 'function') onCollectionToggled(card, isOwned);
+      _prevOwned.current = isOwned;
+    }
+  }, [isOwned]);
+  useEffect(() => {
+    if (_prevFav.current !== isFavorited) {
+      if (typeof onFavoriteToggled === 'function') onFavoriteToggled(card, isFavorited);
+      _prevFav.current = isFavorited;
+    }
+  }, [isFavorited]);
 
   useEffect(() => {
     if (propUser) {
@@ -20,9 +36,14 @@ function CardDetailPage({ card, user: propUser, onBack, onNavigate }) {
   }, [propUser, card]);
 
   const getUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setUser(session?.user);
-    if (!session?.user) {
+    try {
+      const { data: { session } } = await safeGetSession();
+      setUser(session?.user);
+      if (!session?.user) {
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('getUser failed', err);
       setLoading(false);
     }
   };
@@ -74,6 +95,7 @@ function CardDetailPage({ card, user: propUser, onBack, onNavigate }) {
           .eq('card_id', card.id);
         if (error) throw error;
         setIsOwned(false);
+        if (typeof onCollectionToggled === 'function') onCollectionToggled(card, false);
       } else {
         const { data: inserted, error } = await supabase
           .from('user_cards')
@@ -134,7 +156,7 @@ function CardDetailPage({ card, user: propUser, onBack, onNavigate }) {
           onSuccess={async () => {
             setShowLoginModal(false);
             try {
-              const { data: { session } } = await supabase.auth.getSession();
+              const { data: { session } } = await safeGetSession();
               const currentUser = session?.user;
               if (currentUser) {
                 setUser(currentUser);

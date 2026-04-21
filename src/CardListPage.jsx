@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from './supabase';
+import { supabase, safeGetSession } from './supabase';
+// No automatic fetch on tab focus/visibility - App and pages keep in-memory data stable.
 import LoginModal from './LoginModal';
 
 function CardListPage({ 
-  user, cards, cardsLoading, onSelectCard, onLogout, searchText, setSearchText, onNavigate,
+  user, profile, cards, cardsLoading, onSelectCard, onLogout, searchText, setSearchText, onNavigate,
   currentPage, setCurrentPage, selectedType, setSelectedType, selectedRarity, setSelectedRarity,
-  sortBy, setSortBy, showFilters, setShowFilters
+  sortBy, setSortBy, showFilters, setShowFilters, onLoginSuccess
 }) {
   const [filteredCards, setFilteredCards] = useState([]);
   const [localShowFilters, setLocalShowFilters] = useState(showFilters || false);
@@ -198,7 +199,10 @@ function CardListPage({
         <div className="header-right">
           {user ? (
             <>
-              <span className="user-email">{user.email}</span>
+              <div className="header-user">
+                <img src={profile?.avatar_url || '/default_profile.png'} alt="avatar" className="header-avatar" />
+                <span className="header-username">{profile?.username || user.email}</span>
+              </div>
               <button onClick={onLogout} className="btn btn-logout">로그아웃</button>
             </>
           ) : (
@@ -218,7 +222,7 @@ function CardListPage({
           <button className="sidebar-btn" onClick={() => onNavigate?.('list')}>🔎 검색</button>
           <button className="sidebar-btn">📘 도움말</button>
           <div className="sidebar-divider" />
-          <button className="sidebar-btn">👤 프로필</button>
+          <button className="sidebar-btn" onClick={() => { if (!user) { setModalIsSignUp(false); setRedirectAfterLogin('profile'); setShowLoginModal(true); } else { onNavigate?.('profile'); } }}>👤 프로필</button>
           <button className="sidebar-btn">⚙️ 설정</button>
         </aside>
 
@@ -299,10 +303,11 @@ function CardListPage({
           검색 결과: {filteredCards.length}개 (페이지 {currentPage}/{totalPages})
         </div>
 
-        {cardsLoading ? (
+        {(cardsLoading && (!cards || cards.length === 0)) ? (
           <div className="loading">로딩 중...</div>
         ) : (
           <>
+            {cardsLoading && (cards && cards.length > 0) && <div className="small-refresh">백그라운드 갱신 중...</div>}
             <div className="cards-grid">
               {paginatedCards.map(card => (
                 <div
@@ -399,7 +404,12 @@ function CardListPage({
         <LoginModal onClose={() => setShowLoginModal(false)} initialIsSignUp={modalIsSignUp} onSuccess={async () => {
           setShowLoginModal(false);
           try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const sessionResult = await safeGetSession();
+            const session = sessionResult?.data?.session;
+            // inform App to refresh user state immediately (avoids race where App still thinks user is null)
+            if (typeof onLoginSuccess === 'function') {
+              await onLoginSuccess();
+            }
             if (session && redirectAfterLogin) {
               onNavigate?.(redirectAfterLogin);
               setRedirectAfterLogin(null);
@@ -410,6 +420,7 @@ function CardListPage({
               window.location.reload();
             }
           } catch (err) {
+            console.error('getSession failed after retries', err);
             window.location.reload();
           }
         }} />

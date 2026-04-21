@@ -1,10 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 
-function MyCollectionPage({ user, onBack, cards, onNavigate }) {
+function MyCollectionPage({ user, profile, collectionCards: collectionCardsProp, collectionLoading, onRemoveFromCollection, onBack, onNavigate, onShowLogin }) {
   const [collectionCards, setCollectionCards] = useState([]);
+
+  // Sync from App-provided prop if present
+  useEffect(() => {
+    if (collectionCardsProp && Array.isArray(collectionCardsProp)) {
+      setCollectionCards(collectionCardsProp);
+    }
+  }, [collectionCardsProp]);
+
+  // Sync loading flag from parent
+  useEffect(() => {
+    if (typeof collectionLoading !== 'undefined') setLoading(collectionLoading);
+  }, [collectionLoading]);
   const [filteredCards, setFilteredCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [selectedRarity, setSelectedRarity] = useState('');
@@ -21,10 +34,14 @@ function MyCollectionPage({ user, onBack, cards, onNavigate }) {
   const CARDS_PER_PAGE = 10;
 
   useEffect(() => {
-    if (user) {
+    // Only fetch if parent App did not provide cached collection
+    if (user && (!collectionCardsProp || collectionCardsProp.length === 0)) {
       fetchUserCollection();
     }
-  }, [user]);
+  }, [user, collectionCardsProp]);
+
+  // Disabled: don't refetch automatically when tab/window visibility changes.
+  // This app will keep already-loaded collection data in memory and won't refetch on focus.
 
   // 카드 필터링 및 정렬
   useEffect(() => {
@@ -50,8 +67,9 @@ function MyCollectionPage({ user, onBack, cards, onNavigate }) {
   }, [searchText, selectedType, selectedRarity, sortBy]);
 
   const fetchUserCollection = async () => {
+    const isInitialLoad = !collectionCards || collectionCards.length === 0;
     try {
-      setLoading(true);
+      if (isInitialLoad) setLoading(true); else setRefreshing(true);
       
       const { data: userCards, error: userCardsError } = await supabase
         .from('user_cards')
@@ -61,8 +79,9 @@ function MyCollectionPage({ user, onBack, cards, onNavigate }) {
       if (userCardsError) throw userCardsError;
 
       if (!userCards || userCards.length === 0) {
-        setCollectionCards([]);
-        setLoading(false);
+        if (isInitialLoad) {
+          setCollectionCards([]);
+        }
         return;
       }
 
@@ -75,12 +94,19 @@ function MyCollectionPage({ user, onBack, cards, onNavigate }) {
       if (cardsError) throw cardsError;
 
       console.log('✅ 컬렉션 로드:', fetchedCards?.length || 0, '장');
-      setCollectionCards(fetchedCards || []);
+      if (fetchedCards && Array.isArray(fetchedCards)) {
+        setCollectionCards(fetchedCards);
+        try { sessionStorage.setItem('collectionCards', JSON.stringify(fetchedCards)); } catch(e){}
+      }
     } catch (error) {
       console.error('❌ 컬렉션 로드 실패:', error);
-      setCollectionCards([]);
+      if (isInitialLoad) {
+        setCollectionCards([]);
+        try { sessionStorage.setItem('collectionCards', JSON.stringify([])); } catch(e){}
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -125,13 +151,21 @@ function MyCollectionPage({ user, onBack, cards, onNavigate }) {
 
   const handleRemoveFromCollection = async (cardId) => {
     try {
+      if (typeof onRemoveFromCollection === 'function') {
+        await onRemoveFromCollection(cardId);
+        setCollectionCards(prev => (prev || []).filter(c => c.id !== cardId));
+        return;
+      }
+
       await supabase
         .from('user_cards')
         .delete()
         .eq('user_id', user.id)
         .eq('card_id', cardId);
 
-      setCollectionCards(collectionCards.filter(card => card.id !== cardId));
+      const next = collectionCards.filter(card => card.id !== cardId);
+      setCollectionCards(next);
+      try { sessionStorage.setItem('collectionCards', JSON.stringify(next)); } catch(e){}
     } catch (error) {
       console.error('❌ 컬렉션에서 제거 실패:', error);
     }
@@ -164,7 +198,10 @@ function MyCollectionPage({ user, onBack, cards, onNavigate }) {
           <h1 className="logo" onClick={() => onNavigate?.('landing')}><img src="/Header_Logo.png" alt="logo" className="header-logo" /> 포켓몬 TCG 도감</h1>
         </div>
         <div className="header-right">
-          <span className="user-email">{user.email}</span>
+          <div className="header-user">
+            <img src={profile?.avatar_url || '/default_profile.png'} alt="avatar" className="header-avatar" />
+            <span className="header-username">{profile?.username || user.email}</span>
+          </div>
           <button 
             className="btn btn-logout"
             onClick={async () => { await supabase.auth.signOut(); onBack(); }}
@@ -181,7 +218,7 @@ function MyCollectionPage({ user, onBack, cards, onNavigate }) {
           <button className="sidebar-btn" onClick={() => onNavigate?.('list')}>🔎 검색</button>
           <button className="sidebar-btn">📘 도움말</button>
           <div className="sidebar-divider" />
-          <button className="sidebar-btn">👤 프로필</button>
+          <button className="sidebar-btn" onClick={() => { if (!user) { onShowLogin?.(); } else { onNavigate?.('profile'); } }}>👤 프로필</button>
           <button className="sidebar-btn">⚙️ 설정</button>
         </aside>
 
@@ -268,6 +305,7 @@ function MyCollectionPage({ user, onBack, cards, onNavigate }) {
             </div>
           ) : (
             <>
+              {refreshing && <div className="small-refresh">백그라운드 갱신 중...</div>}
               <div className="cards-grid">
                 {paginatedCards.map(card => (
                   <div

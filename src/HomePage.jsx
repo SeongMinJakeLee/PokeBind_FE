@@ -4,6 +4,7 @@ import LoginModal from './LoginModal';
 
 function HomePage({ 
   user, 
+  profile,
   cards, 
   cardsLoading, 
   searchText, 
@@ -131,7 +132,10 @@ function HomePage({
         <div className="header-right">
           {user ? (
             <>
-              <span className="user-email">{user.email}</span>
+              <div className="header-user">
+                <img src={profile?.avatar_url || '/default_profile.png'} alt="avatar" className="header-avatar" />
+                <span className="header-username">{profile?.username || user.email}</span>
+              </div>
               <button 
                 className="btn btn-logout"
                 onClick={onLogout}

@@ -8,7 +8,13 @@ function LandingPage({
   setSelectedType,
   selectedRarity,
   setSelectedRarity,
-  onSearch
+  onSearch,
+  user,
+  profile,
+  onShowLogin,
+  onShowSignUp,
+  onLogout,
+  onNavigate
 }) {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -24,16 +30,19 @@ function LandingPage({
           <h1 className="logo" onClick={() => typeof onNavigate === 'function' && onNavigate('landing')}><img src="/Header_Logo.png" alt="logo" className="header-logo" /> 포켓몬 TCG 도감</h1>
         </div>
         <div className="header-right">
-          { /* If a user prop is provided, show email and logout; otherwise show login/signup buttons that call onNavigate if available */ }
-          {typeof user !== 'undefined' && user ? (
+          {/* If a user prop is provided, show profile pic and nickname; otherwise show login/signup buttons that open modal via callbacks */}
+          {user ? (
             <>
-              <span className="user-email">{user.email}</span>
+              <div className="header-user">
+                <img src={profile?.avatar_url || '/default_profile.png'} alt="avatar" className="header-avatar" />
+                <span className="header-username">{profile?.username || user.email}</span>
+              </div>
               <button onClick={() => typeof onLogout === 'function' && onLogout()} className="btn btn-logout">로그아웃</button>
             </>
           ) : (
             <>
-              <button className="btn btn-login-sm" onClick={() => typeof onNavigate === 'function' && onNavigate('login')}>Log In</button>
-              <button className="btn btn-signup" onClick={() => typeof onNavigate === 'function' && onNavigate('signup')}>Sign Up</button>
+              <button className="btn btn-login-sm" onClick={() => typeof onShowLogin === 'function' ? onShowLogin() : null}>Log In</button>
+              <button className="btn btn-signup" onClick={() => typeof onShowSignUp === 'function' ? onShowSignUp() : null}>Sign Up</button>
             </>
           )}
         </div>

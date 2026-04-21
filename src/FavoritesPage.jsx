@@ -1,10 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 
-function FavoritesPage({ user, onBack, onNavigate, onSelectCard }) {
+function FavoritesPage({ user, profile, favCards: favCardsProp, favLoading, onRemoveFavorite, onBack, onNavigate, onSelectCard, onShowLogin }) {
   const [favCards, setFavCards] = useState([]);
+
+  // Sync from App-provided prop if present
+  useEffect(() => {
+    if (favCardsProp && Array.isArray(favCardsProp)) {
+      setFavCards(favCardsProp);
+      setLoading(false);
+    }
+  }, [favCardsProp]);
+
+  // Sync loading flag from parent
+  useEffect(() => {
+    if (typeof favLoading !== 'undefined') setLoading(favLoading);
+  }, [favLoading]);
   const [filteredCards, setFilteredCards] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // initial full-load indicator (use App cache when available)
+  const [refreshing, setRefreshing] = useState(false); // background refresh when returning to tab
   const [searchText, setSearchText] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [selectedRarity, setSelectedRarity] = useState('');
@@ -20,8 +34,12 @@ function FavoritesPage({ user, onBack, onNavigate, onSelectCard }) {
   const CARDS_PER_PAGE = 10;
 
   useEffect(() => {
-    if (user) fetchUserFavorites();
-  }, [user]);
+    // Only fetch on mount/login if parent did not provide cached favs
+    if (user && (!favCardsProp || favCardsProp.length === 0)) fetchUserFavorites();
+  }, [user, favCardsProp]);
+
+  // Disabled: don't refetch automatically when tab/window visibility changes.
+  // This app will keep already-loaded favorite data in memory and won't refetch on focus.
 
   useEffect(() => {
     applyFiltersAndSort();
@@ -43,30 +61,48 @@ function FavoritesPage({ user, onBack, onNavigate, onSelectCard }) {
   }, [searchText, selectedType, selectedRarity, sortBy]);
 
   const fetchUserFavorites = async () => {
+    const isInitialLoad = !favCards || favCards.length === 0;
     try {
-      setLoading(true);
+      if (isInitialLoad) setLoading(true); else setRefreshing(true);
+
       const { data: favRows, error: favError } = await supabase
         .from('user_favorites')
         .select('card_id')
         .eq('user_id', user.id);
       if (favError) throw favError;
+
+      // If no favorite rows returned
       if (!favRows || favRows.length === 0) {
-        setFavCards([]);
-        setLoading(false);
+        if (isInitialLoad) {
+          setFavCards([]); // first load: show empty state
+        }
+        // background refresh: keep existing cards unchanged
         return;
       }
+
       const cardIds = favRows.map(r => r.card_id);
       const { data: cards, error: cardsError } = await supabase
         .from('pokemon_cards')
         .select('*')
         .in('id', cardIds);
       if (cardsError) throw cardsError;
-      setFavCards(cards || []);
+
+      // Only update state after successful fetch
+      if (cards && Array.isArray(cards)) {
+        setFavCards(cards);
+        try { sessionStorage.setItem('favCards', JSON.stringify(cards)); } catch(e){}
+      }
     } catch (err) {
       console.error('❌ 찜 목록 로드 실패:', err);
-      setFavCards([]);
+      // Don't clear existing favCards when a background refresh fails
+      // If initial load failed, ensure empty state is shown
+      if (isInitialLoad) {
+        setFavCards([]);
+        try { sessionStorage.setItem('favCards', JSON.stringify([])); } catch(e){}
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -96,12 +132,21 @@ function FavoritesPage({ user, onBack, onNavigate, onSelectCard }) {
 
   const handleRemoveFavorite = async (cardId) => {
     try {
+      if (typeof onRemoveFavorite === 'function') {
+        await onRemoveFavorite(cardId);
+        // parent will update props/state; optimistically update local UI
+        setFavCards(prev => (prev || []).filter(c => c.id !== cardId));
+        return;
+      }
+
       await supabase
         .from('user_favorites')
         .delete()
         .eq('user_id', user.id)
         .eq('card_id', cardId);
-      setFavCards(favCards.filter(c => c.id !== cardId));
+      const next = favCards.filter(c => c.id !== cardId);
+      setFavCards(next);
+      try { sessionStorage.setItem('favCards', JSON.stringify(next)); } catch(e){}
     } catch (err) {
       console.error('❌ 찜에서 제거 실패:', err);
     }
@@ -119,7 +164,10 @@ function FavoritesPage({ user, onBack, onNavigate, onSelectCard }) {
           <h1 className="logo" onClick={() => onNavigate?.('landing')}><img src="/Header_Logo.png" alt="logo" className="header-logo" /> 포켓몬 TCG 도감</h1>
         </div>
         <div className="header-right">
-          <span className="user-email">{user.email}</span>
+          <div className="header-user">
+            <img src={profile?.avatar_url || '/default_profile.png'} alt="avatar" className="header-avatar" />
+            <span className="header-username">{profile?.username || user.email}</span>
+          </div>
           <button className="btn btn-logout" onClick={async () => { await supabase.auth.signOut(); onBack(); }}>로그아웃</button>
         </div>
       </header>
@@ -131,7 +179,7 @@ function FavoritesPage({ user, onBack, onNavigate, onSelectCard }) {
           <button className="sidebar-btn" onClick={() => onNavigate?.('list')}>🔎 검색</button>
           <button className="sidebar-btn" onClick={() => onNavigate?.('help')}>📘 도움말</button>
           <div className="sidebar-divider" />
-          <button className="sidebar-btn">👤 프로필</button>
+          <button className="sidebar-btn" onClick={() => { if (!user) { onShowLogin?.(); } else { onNavigate?.('profile'); } }}>👤 프로필</button>
           <button className="sidebar-btn">⚙️ 설정</button>
         </aside>
 
@@ -203,7 +251,7 @@ function FavoritesPage({ user, onBack, onNavigate, onSelectCard }) {
 
           <div className="cards-count">찜한 카드: {filteredCards.length}개</div>
 
-          {loading ? (
+          {(loading && (favCards.length === 0)) ? (
             <div className="loading">로딩 중...</div>
           ) : favCards.length === 0 ? (
             <div className="empty-collection">
@@ -211,6 +259,7 @@ function FavoritesPage({ user, onBack, onNavigate, onSelectCard }) {
             </div>
           ) : (
             <>
+              {refreshing && <div className="small-refresh">백그라운드 갱신 중...</div>}
               <div className="cards-grid">
                 {paginatedCards.map(card => (
                   <div key={card.id} className={`card-item ${card.rarity ? `card-rarity-${card.rarity.toLowerCase().replace(/\s+/g,'-')}` : ''}`} onClick={() => onSelectCard?.(card) || null}>
