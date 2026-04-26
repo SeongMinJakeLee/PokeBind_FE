@@ -159,7 +159,6 @@ function ProfilePage({ user, profile, onBack, onNavigate }) {
           <button className="sidebar-btn" onClick={() => onNavigate?.('favorites')}>⭐ 찜 목록</button>
           <button className="sidebar-btn" onClick={() => onNavigate?.('list')}>🔎 검색</button>
           <div className="sidebar-divider" />
-          <button className="sidebar-btn">⚙️ 설정</button>
         </aside>
 
         <div className="home-content profile-page">

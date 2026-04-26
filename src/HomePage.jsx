@@ -168,10 +168,8 @@ function HomePage({
           <button className="sidebar-btn" onClick={handleCollectionClick}>📊 내 컬렉션</button>
           <button className="sidebar-btn" onClick={handleFavoritesClick}>⭐ 찜 목록</button>
           <button className="sidebar-btn" onClick={() => { document.querySelector('.search-input-large')?.focus(); }}>🔎 검색</button>
-          <button className="sidebar-btn">📘 도움말</button>
           <div className="sidebar-divider" />
           <button className="sidebar-btn">👤 프로필</button>
-          <button className="sidebar-btn">⚙️ 설정</button>
         </aside>
 
         <div className="home-content">

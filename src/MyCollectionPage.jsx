@@ -216,10 +216,8 @@ function MyCollectionPage({ user, profile, collectionCards: collectionCardsProp,
           <button className="sidebar-btn" onClick={() => onNavigate?.('collection')}>📊 내 컬렉션</button>
           <button className="sidebar-btn" onClick={() => onNavigate?.('favorites')}>⭐ 찜 목록</button>
           <button className="sidebar-btn" onClick={() => onNavigate?.('list')}>🔎 검색</button>
-          <button className="sidebar-btn">📘 도움말</button>
           <div className="sidebar-divider" />
           <button className="sidebar-btn" onClick={() => { if (!user) { onShowLogin?.(); } else { onNavigate?.('profile'); } }}>👤 프로필</button>
-          <button className="sidebar-btn">⚙️ 설정</button>
         </aside>
 
         <div className="home-content">

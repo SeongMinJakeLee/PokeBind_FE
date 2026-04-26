@@ -220,10 +220,8 @@ function CardListPage({
           <button className="sidebar-btn" onClick={() => { if (!user) { setModalIsSignUp(false); setRedirectAfterLogin('collection'); setShowLoginModal(true); } else { onNavigate?.('collection'); } }}>📊 내 컬렉션</button>
           <button className="sidebar-btn" onClick={() => { if (!user) { setModalIsSignUp(false); setRedirectAfterLogin('favorites'); setShowLoginModal(true); } else { onNavigate?.('favorites'); } }}>⭐ 찜 목록</button>
           <button className="sidebar-btn" onClick={() => onNavigate?.('list')}>🔎 검색</button>
-          <button className="sidebar-btn">📘 도움말</button>
           <div className="sidebar-divider" />
           <button className="sidebar-btn" onClick={() => { if (!user) { setModalIsSignUp(false); setRedirectAfterLogin('profile'); setShowLoginModal(true); } else { onNavigate?.('profile'); } }}>👤 프로필</button>
-          <button className="sidebar-btn">⚙️ 설정</button>
         </aside>
 
         {/* 메인 콘텐츠 */}

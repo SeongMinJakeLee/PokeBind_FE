@@ -96,10 +96,8 @@ function CardListPage({
           }}>📊 내 컬렉션</div>
           <div className="menu-item">⭐ 찜 목록</div>
           <div className="menu-item">🔍 검색</div>
-          <div className="menu-item">📚 도움말</div>
           <div className="menu-divider"></div>
           <div className="menu-item">👤 프로필</div>
-          <div className="menu-item">⚙️ 설정</div>
         </nav>
       </aside>
 

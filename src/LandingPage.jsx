@@ -1,5 +1,8 @@
 import React from 'react';
 import LandingSearch from './LandingSearch';
+import Spline from '@splinetool/react-spline';
+
+
 
 function LandingPage({
   searchText,
@@ -49,14 +52,13 @@ function LandingPage({
       </header>
 
       <div className="landing-container">
-        <div className="universe-bg" aria-hidden="true">
-          <div className="blob b1" />
-          <div className="blob b2" />
-          <div className="blob b3" />
+        {/* Spline 3D component */}
+        <div className="spline-embed">
+          <Spline scene="https://prod.spline.design/bMuY9INVc8rtkW15/scene.splinecode" />
         </div>
 
-        <div className="landing-box">
-          <img src="/pokemon_metamong_1.png" alt="logo" className="landing-logo" />
+<div className="landing-box">
+          {/* logo disabled */}
           <div className="search-filter-wrapper">
             <LandingSearch searchText={searchText} setSearchText={setSearchText} onSearch={onSearch} />
           </div>
